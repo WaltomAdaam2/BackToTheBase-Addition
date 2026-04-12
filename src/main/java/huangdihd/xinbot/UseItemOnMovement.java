@@ -28,6 +28,7 @@ public class UseItemOnMovement extends Movement {
                 Hand.MAIN_HAND,
                 0f, 0f, 0f,
                 false,
+                false,
                 (int) System.currentTimeMillis()
         ));
     }
