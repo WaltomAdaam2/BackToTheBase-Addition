@@ -6,7 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="e905daf1-2077-4565-b09e-816588da6d8f" name="Changes" comment="Bump project and dependency versions&#10;&#10;- Update project version to 1.1.0-RELEASE&#10;- Update MovementSync dependency to 1.3.0-RELEASE">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/huangdihd/xinbot/OnPrivateChat.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/huangdihd/xinbot/OnPrivateChat.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/huangdihd/xinbot/BackToTheBase.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/huangdihd/xinbot/BackToTheBase.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/huangdihd/xinbot/UseItemOnMovement.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/huangdihd/xinbot/UseItemOnMovement.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -15,7 +16,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="17" />
+    <option name="cachedIndexableFilesCount" value="19" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="FileTemplateManagerImpl">
@@ -140,6 +141,8 @@
       <workItem from="1770532051578" duration="1146000" />
       <workItem from="1775987206953" duration="793000" />
       <workItem from="1775989514175" duration="788000" />
+      <workItem from="1776050569434" duration="1179000" />
+      <workItem from="1776086592129" duration="1050000" />
     </task>
     <task id="LOCAL-00001" summary="Add initial project setup and basic plugin structure">
       <option name="closed" value="true" />

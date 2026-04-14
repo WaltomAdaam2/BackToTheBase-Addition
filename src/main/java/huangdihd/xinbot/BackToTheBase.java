@@ -12,19 +12,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class BackToTheBase implements Plugin {
     @Getter
     public static BackToTheBase Instance;
     public Map<String, Button> buttons;
     public static final String config_name = "base_config.json";
-
-    private final AtomicInteger sequence = new AtomicInteger(0);
-
-    public int getAndIncrementSequence() {
-        return sequence.getAndIncrement();
-    }
 
     @Override
     public void onLoad() {
@@ -66,16 +59,6 @@ public class BackToTheBase implements Plugin {
 
     @Override
     public void onEnable() {
-        /*
-        Bot.Instance.getSession().addListener(new SessionAdapter() {
-            @Override
-            public void packetReceived(Session session, Packet packet) {
-                if (packet instanceof ClientboundBlockChangedAckPacket ack) {
-                    sequence.set(ack.getSequence());
-                }
-            }
-        });
-        */
         Bot.Instance.getPluginManager().events().registerEvents(new OnPrivateChat(), this);
     }
 
