@@ -22,18 +22,18 @@ public class UseItemOnMovement extends Movement {
 
     @Override
     public void init() {
-        Bot.Instance.getSession().send(new ServerboundSwingPacket(
+        Bot.INSTANCE.getSession().send(new ServerboundSwingPacket(
                 Hand.MAIN_HAND
         ));
 
-        Bot.Instance.getSession().send(new ServerboundUseItemOnPacket(
+        Bot.INSTANCE.getSession().send(new ServerboundUseItemOnPacket(
                 this.target,
                 this.direction,
                 Hand.MAIN_HAND,
                 0.5f, 0.5f, 0.5f,
                 false, // insideBlock
                 false, // isHitWorldBorder
-                Bot.Instance.getAndIncreaseSequence()
+                Bot.INSTANCE.getAndIncreaseSequence()
         ));
     }
 

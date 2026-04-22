@@ -3,6 +3,8 @@ package huangdihd.xinbot;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import xin.bbtt.mcbot.Bot;
 import xin.bbtt.mcbot.plugin.Plugin;
 
@@ -15,13 +17,16 @@ import java.util.Map;
 
 public class BackToTheBase implements Plugin {
     @Getter
-    public static BackToTheBase Instance;
+    private final Logger logger = LoggerFactory.getLogger(BackToTheBase.class.getSimpleName());
+    @Getter
+    public static BackToTheBase INSTANCE;
+    @Getter
     public Map<String, Button> buttons;
     public static final String config_name = "base_config.json";
 
     @Override
     public void onLoad() {
-        Instance = this;
+        INSTANCE = this;
 
         File configFile = new File(config_name);
         if (!configFile.exists()) {
@@ -59,7 +64,7 @@ public class BackToTheBase implements Plugin {
 
     @Override
     public void onEnable() {
-        Bot.Instance.getPluginManager().events().registerEvents(new OnPrivateChat(), this);
+        Bot.INSTANCE.getPluginManager().events().registerEvents(new OnPrivateChat(), this);
     }
 
     @Override

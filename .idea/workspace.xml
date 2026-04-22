@@ -4,11 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e905daf1-2077-4565-b09e-816588da6d8f" name="Changes" comment="Bump project and dependency versions&#10;&#10;- Update project version to 1.1.0-RELEASE&#10;- Update MovementSync dependency to 1.3.0-RELEASE">
+    <list default="true" id="e905daf1-2077-4565-b09e-816588da6d8f" name="Changes" comment="Bump project and dependency versions- Update project version to 1.3.0-RELEASE&#10;- Update MovementSync dependency to 1.3.2-RELEASE&#10;- Remove unused sequence tracking and packet handling in BackToTheBase&#10;- Simplify UseItemOnMovement by removing redundant code and using Bot.Instance for sequence tracking">
+      <change afterPath="$PROJECT_DIR$/src/main/resources/plugin.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/huangdihd/xinbot/BackToTheBase.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/huangdihd/xinbot/BackToTheBase.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/huangdihd/xinbot/OnPrivateChat.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/huangdihd/xinbot/OnPrivateChat.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/huangdihd/xinbot/UseItemOnMovement.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/huangdihd/xinbot/UseItemOnMovement.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/META-INF/services/xin.bbtt.mcbot.plugin.Plugin" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -16,7 +19,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="19" />
+    <option name="cachedIndexableFilesCount" value="17" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="FileTemplateManagerImpl">
@@ -143,6 +146,10 @@
       <workItem from="1775989514175" duration="788000" />
       <workItem from="1776050569434" duration="1179000" />
       <workItem from="1776086592129" duration="1050000" />
+      <workItem from="1776133648633" duration="3029000" />
+      <workItem from="1776219527369" duration="9000" />
+      <workItem from="1776437269242" duration="1917000" />
+      <workItem from="1776856894723" duration="765000" />
     </task>
     <task id="LOCAL-00001" summary="Add initial project setup and basic plugin structure">
       <option name="closed" value="true" />
@@ -224,11 +231,30 @@
       <option name="project" value="LOCAL" />
       <updated>1775987587883</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="Bump project and dependency versions- Update project version to 1.3.0-RELEASE&#10;- Update MovementSync dependency to 1.3.2-RELEASE&#10;- Remove unused sequence tracking and packet handling in BackToTheBase&#10;- Simplify UseItemOnMovement by removing redundant code and using Bot.Instance for sequence tracking">
+      <option name="closed" value="true" />
+      <created>1776133948003</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1776133948003</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Add initial project setup and basic plugin structure" />
@@ -243,6 +269,8 @@
     <MESSAGE value="Add Chinese translation for README and update English README with more details&#10;&#10;- Add `README.zh-CN.md` for Chinese users&#10;- Update `README.md` with features, detailed usage, and configuration instructions" />
     <MESSAGE value="Add and update project configuration files and README&#10;&#10;- Add `.idea` configuration files for encodings, JAR repositories, VCS, and misc settings&#10;- Update `README.md` with detailed usage instructions and multi-language support&#10;- Add `README.zh-CN.md` for Chinese documentation" />
     <MESSAGE value="Bump project and dependency versions&#10;&#10;- Update project version to 1.1.0-RELEASE&#10;- Update MovementSync dependency to 1.3.0-RELEASE" />
-    <option name="LAST_COMMIT_MESSAGE" value="Bump project and dependency versions&#10;&#10;- Update project version to 1.1.0-RELEASE&#10;- Update MovementSync dependency to 1.3.0-RELEASE" />
+    <MESSAGE value="Bump project and dependency versions- Update project version to 1.3.0-RELEASE&#10;- Update MovementSync dependency to 1.3.2-RELEASE&#10;- Remove unused sequence tracking and packet handling" />
+    <MESSAGE value="Bump project and dependency versions- Update project version to 1.3.0-RELEASE&#10;- Update MovementSync dependency to 1.3.2-RELEASE&#10;- Remove unused sequence tracking and packet handling in BackToTheBase&#10;- Simplify UseItemOnMovement by removing redundant code and using Bot.Instance for sequence tracking" />
+    <option name="LAST_COMMIT_MESSAGE" value="Bump project and dependency versions- Update project version to 1.3.0-RELEASE&#10;- Update MovementSync dependency to 1.3.2-RELEASE&#10;- Remove unused sequence tracking and packet handling in BackToTheBase&#10;- Simplify UseItemOnMovement by removing redundant code and using Bot.Instance for sequence tracking" />
   </component>
 </project>
