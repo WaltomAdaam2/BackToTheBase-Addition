@@ -19,21 +19,23 @@ A Xinbot plugin that triggers ender pearls to bring a bot back to base.
 
    ```json
    {
-     "Name1": {
-       "x": 0,
-       "y": 0,
-       "z": 0,
-       "direction": "UP"
+     "Steve": {
+       "x": 100,
+       "y": 64,
+       "z": 200
      },
-     "Name2": {
-       "x": 1,
-       "y": 1,
-       "z": 1,
-       "direction": "DOWN"
+     "Alex": {
+       "x": -50,
+       "y": 70,
+       "z": 30
      }
    }
    ```
 
-   This plugin supports multiple users. Each top-level key (for example, `Name1`) should be replaced with the user's name. Each entry defines the button position and the direction the button faces.
-7. Reload your Xinbot instance again.
+   **Configuration details:**
+   - The root object is a JSON map.
+   - **Key** (e.g., `"Steve"`): The **In-game ID** of the player who will send the command.
+   - **Value**: A coordinate object with `x`, `y`, and `z` representing the **exact block coordinates of the button**.
+   - The bot automatically detects the button's facing direction. When it receives a `back` private message, it will find a safe path to the button, move to a reachable position, aim at it, and press it.
+7. Reload your Xinbot instance again to apply the changes.
 8. Send the bot a private message with the content `back`.
