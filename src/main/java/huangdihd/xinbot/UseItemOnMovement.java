@@ -2,6 +2,7 @@ package huangdihd.xinbot;
 
 import lombok.Getter;
 import org.cloudburstmc.math.vector.Vector3i;
+import org.geysermc.mcprotocollib.protocol.data.game.entity.object.Direction;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.player.Hand;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.serverbound.player.ServerboundSwingPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.serverbound.player.ServerboundUseItemOnPacket;
@@ -13,9 +14,9 @@ public class UseItemOnMovement extends Movement {
     @Getter
     private final Vector3i target;
     @Getter
-    private final org.geysermc.mcprotocollib.protocol.data.game.entity.object.Direction direction;
+    private final Direction direction;
 
-    public UseItemOnMovement(Vector3i target, org.geysermc.mcprotocollib.protocol.data.game.entity.object.Direction direction) {
+    public UseItemOnMovement(Vector3i target, Direction direction) {
         this.target = target;
         this.direction = direction;
     }
