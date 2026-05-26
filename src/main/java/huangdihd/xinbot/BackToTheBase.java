@@ -2,7 +2,11 @@ package huangdihd.xinbot;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonObject;
 import lombok.Getter;
+import org.cloudburstmc.math.vector.Vector3i;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xin.bbtt.mcbot.Bot;
@@ -15,13 +19,11 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.Map;
 
+@Getter
 public class BackToTheBase implements Plugin {
-    @Getter
     private final Logger logger = LoggerFactory.getLogger(BackToTheBase.class.getSimpleName());
-    @Getter
     public static BackToTheBase INSTANCE;
-    @Getter
-    public Map<String, Button> buttons;
+    public Map<String, Vector3i> buttons;
     public static final String config_name = "base_config.json";
 
     @Override
@@ -45,8 +47,15 @@ public class BackToTheBase implements Plugin {
         }
         if (configFile.isFile()) {
             try {
-                Gson gson = new Gson();
-                Type type = new TypeToken<Map<String, Button>>() {}.getType();
+                Gson gson = new GsonBuilder().registerTypeAdapter(Vector3i.class, (JsonDeserializer<Vector3i>) (json, typeOfT, context) -> {
+                    JsonObject obj = json.getAsJsonObject();
+                    return Vector3i.from(
+                            obj.get("x").getAsInt(),
+                            obj.get("y").getAsInt(),
+                            obj.get("z").getAsInt()
+                    );
+                }).create();
+                Type type = new TypeToken<Map<String, Vector3i>>() {}.getType();
                 FileReader reader = new FileReader(configFile);
                 buttons = gson.fromJson(reader, type);
                 reader.close();
