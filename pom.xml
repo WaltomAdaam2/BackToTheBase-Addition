@@ -13,7 +13,7 @@
 
     <groupId>huangdihd.xinbot</groupId>
     <artifactId>BackToTheBase</artifactId>
-    <version>1.5.0-RELEASE</version>
+    <version>1.6.0-ALPHA</version>
 
     <dependencies>
         <dependency>
