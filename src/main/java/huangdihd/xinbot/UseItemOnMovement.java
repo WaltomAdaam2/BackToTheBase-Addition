@@ -13,6 +13,7 @@ public class UseItemOnMovement extends Movement {
 
     @Getter
     private final Vector3i target;
+
     @Getter
     private final Direction direction;
 
