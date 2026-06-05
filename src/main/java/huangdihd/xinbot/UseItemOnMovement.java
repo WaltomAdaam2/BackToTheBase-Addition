@@ -64,17 +64,4 @@ public class UseItemOnMovement extends Movement {
             default -> 0.5f;
         };
     }
-
-    @Override
-    public void onTick() {
-    }
-
-    @Override
-    public long getTime() {
-        return 50;
-    }
-
-    @Override
-    public void onStop() {
-    }
 }
