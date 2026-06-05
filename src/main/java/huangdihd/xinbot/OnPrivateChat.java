@@ -9,6 +9,7 @@ import xin.bbtt.mcbot.event.EventHandler;
 import xin.bbtt.mcbot.event.Listener;
 import xin.bbtt.mcbot.events.PrivateChatEvent;
 import xin.bbtt.movement.Movement;
+import xin.bbtt.movements.LookAtMovement;
 import xin.bbtt.movements.PathMovement;
 import xin.bbtt.pathfinding.DStarLite;
 import xin.bbtt.pathfinding.Node;
@@ -319,12 +320,22 @@ public class OnPrivateChat implements Listener {
                     return;
                 }
 
+                BackToTheBase.INSTANCE.getLogger().info(
+                        "Looking at pearl button location {} for {}.",
+                        location.getNumber(),
+                        playerName
+                );
+                
+                MovementSync.INSTANCE.getMovementController().addMovement(new LookAtMovement(
+                        target.hitPosition()
+                ));
+                
                 MovementSync.INSTANCE.getMovementController().addMovement(new UseItemOnMovement(
                         target.position(),
                         target.direction()
                 ));
                 BackToTheBase.INSTANCE.getLogger().info("Clicking pearl button location {} for {}.", location.getNumber(), playerName);
-
+                
                 if (config.isReturnAfterUse()) {
                     MovementSync.INSTANCE.getMovementController().addMovement(new ReturnAfterUseMovement(playerName, config.getReturnLocation()));
                 } else {
