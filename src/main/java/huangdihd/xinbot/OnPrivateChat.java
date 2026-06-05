@@ -141,7 +141,7 @@ public class OnPrivateChat implements Listener {
         }
         xin.bbtt.world.Direction msDirection = xin.bbtt.world.Direction.valueOf(clickDirection.name());
         Vector3d hitPosition = new Vector3d(blockCenter).add(msDirection.getVector(0.5));
-        return new ButtonTarget(positionInt, clickDirection, hitPosition, hitX(clickDirection), hitY(clickDirection), hitZ(clickDirection));
+        return new ButtonTarget(positionInt, clickDirection, hitPosition);
     }
 
     private static Direction getClickDirection(BlockState blockState) {
@@ -172,30 +172,6 @@ public class OnPrivateChat implements Listener {
             BackToTheBase.INSTANCE.getLogger().error("Button block state has invalid facing property {}.", facing);
             return null;
         }
-    }
-
-    private static float hitX(Direction direction) {
-        return switch (direction) {
-            case WEST -> 0.0f;
-            case EAST -> 1.0f;
-            default -> 0.5f;
-        };
-    }
-
-    private static float hitY(Direction direction) {
-        return switch (direction) {
-            case DOWN -> 0.0f;
-            case UP -> 1.0f;
-            default -> 0.5f;
-        };
-    }
-
-    private static float hitZ(Direction direction) {
-        return switch (direction) {
-            case NORTH -> 0.0f;
-            case SOUTH -> 1.0f;
-            default -> 0.5f;
-        };
     }
 
     private static boolean canClickFrom(World world, Vector3d currentPos, Vector3d hitPosition) {
@@ -299,10 +275,7 @@ public class OnPrivateChat implements Listener {
     private record ButtonTarget(
             org.cloudburstmc.math.vector.Vector3i position,
             Direction direction,
-            Vector3d hitPosition,
-            float hitX,
-            float hitY,
-            float hitZ
+            Vector3d hitPosition
     ) {
     }
 
@@ -347,14 +320,9 @@ public class OnPrivateChat implements Listener {
                     return;
                 }
 
-                BackToTheBase.INSTANCE.getLogger().info("Looking at pearl button location {} for {}.", location.getNumber(), playerName);
-                MovementSync.INSTANCE.getMovementController().addMovement(new LookAtMovement(target.hitPosition()));
                 MovementSync.INSTANCE.getMovementController().addMovement(new UseItemOnMovement(
                         target.position(),
-                        target.direction(),
-                        target.hitX(),
-                        target.hitY(),
-                        target.hitZ()
+                        target.direction()
                 ));
                 BackToTheBase.INSTANCE.getLogger().info("Clicking pearl button location {} for {}.", location.getNumber(), playerName);
 
