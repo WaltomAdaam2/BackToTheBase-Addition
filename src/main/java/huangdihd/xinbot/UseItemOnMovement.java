@@ -15,20 +15,10 @@ public class UseItemOnMovement extends Movement {
     private final Vector3i target;
     @Getter
     private final Direction direction;
-    private final float hitX;
-    private final float hitY;
-    private final float hitZ;
 
     public UseItemOnMovement(Vector3i target, Direction direction) {
-        this(target, direction, 0.5f, 0.5f, 0.5f);
-    }
-
-    public UseItemOnMovement(Vector3i target, Direction direction, float hitX, float hitY, float hitZ) {
         this.target = target;
         this.direction = direction;
-        this.hitX = hitX;
-        this.hitY = hitY;
-        this.hitZ = hitZ;
     }
 
     @Override
@@ -37,15 +27,41 @@ public class UseItemOnMovement extends Movement {
                 this.target,
                 this.direction,
                 Hand.MAIN_HAND,
-                hitX, hitY, hitZ,
-                false, // insideBlock
-                false, // isHitWorldBorder
+                hitX(this.direction),
+                hitY(this.direction),
+                hitZ(this.direction),
+                false,
+                false,
                 Bot.INSTANCE.getAndIncreaseSequence()
         ));
 
         Bot.INSTANCE.getSession().send(new ServerboundSwingPacket(
                 Hand.MAIN_HAND
         ));
+    }
+
+    private float hitX(Direction direction) {
+        return switch (direction) {
+            case WEST -> 0.0f;
+            case EAST -> 1.0f;
+            default -> 0.5f;
+        };
+    }
+
+    private float hitY(Direction direction) {
+        return switch (direction) {
+            case DOWN -> 0.0f;
+            case UP -> 1.0f;
+            default -> 0.5f;
+        };
+    }
+
+    private float hitZ(Direction direction) {
+        return switch (direction) {
+            case NORTH -> 0.0f;
+            case SOUTH -> 1.0f;
+            default -> 0.5f;
+        };
     }
 
     @Override
