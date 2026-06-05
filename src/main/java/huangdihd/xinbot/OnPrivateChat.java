@@ -9,7 +9,6 @@ import xin.bbtt.mcbot.event.EventHandler;
 import xin.bbtt.mcbot.event.Listener;
 import xin.bbtt.mcbot.events.PrivateChatEvent;
 import xin.bbtt.movement.Movement;
-import xin.bbtt.movements.LookAtMovement;
 import xin.bbtt.movements.PathMovement;
 import xin.bbtt.pathfinding.DStarLite;
 import xin.bbtt.pathfinding.Node;
