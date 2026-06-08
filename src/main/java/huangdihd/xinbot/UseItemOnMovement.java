@@ -13,8 +13,11 @@ public class UseItemOnMovement extends Movement {
 
     @Getter
     private final Vector3i target;
+
     @Getter
     private final Direction direction;
+
+    private boolean used = false;
 
     public UseItemOnMovement(Vector3i target, Direction direction) {
         this.target = target;
@@ -23,28 +26,62 @@ public class UseItemOnMovement extends Movement {
 
     @Override
     public void init() {
-        Bot.INSTANCE.getSession().send(new ServerboundSwingPacket(
-                Hand.MAIN_HAND
-        ));
+    }
+
+    @Override
+    public void onTick() {
+        if (used) {
+            setFinished(true);
+            return;
+        }
 
         Bot.INSTANCE.getSession().send(new ServerboundUseItemOnPacket(
                 this.target,
                 this.direction,
                 Hand.MAIN_HAND,
-                0.5f, 0.5f, 0.5f,
-                false, // insideBlock
-                false, // isHitWorldBorder
+                hitX(this.direction),
+                hitY(this.direction),
+                hitZ(this.direction),
+                false,
+                false,
                 Bot.INSTANCE.getAndIncreaseSequence()
         ));
+
+        Bot.INSTANCE.getSession().send(new ServerboundSwingPacket(
+                Hand.MAIN_HAND
+        ));
+
+        used = true;
+        setFinished(true);
     }
 
-    @Override
-    public void onTick() {
+    private float hitX(Direction direction) {
+        return switch (direction) {
+            case WEST -> 0.0f;
+            case EAST -> 1.0f;
+            default -> 0.5f;
+        };
+    }
+
+    private float hitY(Direction direction) {
+        return switch (direction) {
+            case DOWN -> 0.0f;
+            case UP -> 1.0f;
+            default -> 0.5f;
+        };
+    }
+
+    private float hitZ(Direction direction) {
+        return switch (direction) {
+            case NORTH -> 0.0f;
+            case SOUTH -> 1.0f;
+            default -> 0.5f;
+        };
     }
 
     @Override
     public long getTime() {
-        return 0;
+        return 1000;
     }
 
     @Override
