@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,7 +30,8 @@ import java.util.Set;
 public class BackToTheBase implements Plugin {
     private final Logger logger = LoggerFactory.getLogger(BackToTheBase.class.getSimpleName());
     public static BackToTheBase INSTANCE;
-    public Map<String, PlayerBaseConfig> playerConfigs = new LinkedHashMap<>();
+    public PlayerBaseConfig.BaseConfig baseConfig = new PlayerBaseConfig.BaseConfig();
+    public Map<String, PlayerBaseConfig> playerConfigs = baseConfig.getPlayers();
     public static final String config_name = "base_config.json";
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
@@ -77,13 +78,11 @@ public class BackToTheBase implements Plugin {
     }
 
     private void writeDefaultConfig(File configFile) throws IOException {
-        Map<String, PlayerBaseConfig> defaultConfig = new LinkedHashMap<>();
-        ButtonLocation defaultLocation = new ButtonLocation("1", 0, 60, 0);
-        defaultConfig.put("example_name", new PlayerBaseConfig(
-                List.of(defaultLocation),
-                false,
-                new ReturnLocation(defaultLocation.getX(), defaultLocation.getY(), defaultLocation.getZ())
-        ));
+        PlayerBaseConfig.BaseConfig defaultConfig = new PlayerBaseConfig.BaseConfig();
+        Map<String, PlayerBaseConfig> players = new LinkedHashMap<>();
+        players.put("example_name", new PlayerBaseConfig(List.of(new ButtonLocation("1", 0, 60, 0))));
+        defaultConfig.setPlayers(players);
+        defaultConfig.setReturnConfig(new PlayerBaseConfig.ReturnConfig());
         writeConfig(configFile, defaultConfig);
     }
 
@@ -113,7 +112,7 @@ public class BackToTheBase implements Plugin {
             if (parsed == null || !parsed.isJsonObject()) {
                 getLogger().error("Config root must be a JSON object. {}.", runtimeReload ? "Keeping previous config" : "No player configs loaded");
                 if (!runtimeReload) {
-                    playerConfigs = new LinkedHashMap<>();
+                    setLoadedConfig(new PlayerBaseConfig.BaseConfig());
                 }
                 return false;
             }
@@ -121,15 +120,40 @@ public class BackToTheBase implements Plugin {
         } catch (JsonParseException e) {
             getLogger().error("Config file is not valid JSON. {}.", runtimeReload ? "Keeping previous config" : "No player configs loaded", e);
             if (!runtimeReload) {
-                playerConfigs = new LinkedHashMap<>();
+                setLoadedConfig(new PlayerBaseConfig.BaseConfig());
             }
             return false;
         }
 
+        LoadResult result = root.has("players")
+                ? parseReadmeConfig(root)
+                : parseLegacyConfig(root, runtimeReload);
+
+        if (result == null || (runtimeReload && result.invalid)) {
+            return false;
+        }
+
+        setLoadedConfig(result.config);
+        if (result.changed && !runtimeReload) {
+            writeConfig(configFile, baseConfig);
+            getLogger().info("Saved migrated/validated {}", config_name);
+        }
+        return !result.invalid;
+    }
+
+    private LoadResult parseReadmeConfig(JsonObject root) {
         boolean changed = false;
         boolean invalid = false;
-        Map<String, PlayerBaseConfig> loadedConfigs = new LinkedHashMap<>();
-        for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
+
+        JsonElement playersElement = root.get("players");
+        if (playersElement == null || !playersElement.isJsonObject()) {
+            getLogger().error("Config field players must be an object.");
+            return new LoadResult(new PlayerBaseConfig.BaseConfig(), true, true);
+        }
+
+        Map<String, PlayerBaseConfig> players = new LinkedHashMap<>();
+        JsonObject playersRoot = playersElement.getAsJsonObject();
+        for (Map.Entry<String, JsonElement> entry : playersRoot.entrySet()) {
             String playerName = entry.getKey();
             if (!entry.getValue().isJsonObject()) {
                 getLogger().error("Config entry for {} must be an object.", playerName);
@@ -142,38 +166,68 @@ public class BackToTheBase implements Plugin {
             changed |= result.changed;
             invalid |= result.invalid;
             if (result.config != null) {
-                loadedConfigs.put(playerName, result.config);
+                players.put(playerName, result.config);
             }
         }
 
-        if (runtimeReload && invalid) {
-            return false;
+        ReturnConfigResult returnResult = parseGlobalReturnConfig(root);
+        changed |= returnResult.changed;
+        invalid |= returnResult.invalid;
+
+        PlayerBaseConfig.BaseConfig config = new PlayerBaseConfig.BaseConfig();
+        config.setPlayers(players);
+        config.setReturnConfig(returnResult.config);
+        return new LoadResult(config, changed, invalid);
+    }
+
+    private LoadResult parseLegacyConfig(JsonObject root, boolean runtimeReload) {
+        boolean changed = true;
+        boolean invalid = false;
+        Map<String, PlayerBaseConfig> players = new LinkedHashMap<>();
+        LegacyReturnSelection legacyReturnSelection = new LegacyReturnSelection();
+
+        for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
+            String playerName = entry.getKey();
+            if (!entry.getValue().isJsonObject()) {
+                getLogger().error("Config entry for {} must be an object.", playerName);
+                invalid = true;
+                continue;
+            }
+
+            JsonObject playerObj = entry.getValue().getAsJsonObject();
+            if (hasCoordinate(playerObj)) {
+                int x = getInt(playerObj, "x");
+                int y = getInt(playerObj, "y");
+                int z = getInt(playerObj, "z");
+                getLogger().info("Migrating old simple config format for {}", playerName);
+                players.put(playerName, new PlayerBaseConfig(List.of(new ButtonLocation("1", x, y, z))));
+                legacyReturnSelection.acceptSimpleLocation(new PlayerBaseConfig.ReturnLocation(x, y, z));
+                continue;
+            }
+
+            ConfigResult result = parsePlayerConfig(playerName, playerObj);
+            changed |= result.changed;
+            invalid |= result.invalid;
+            if (result.config != null) {
+                players.put(playerName, result.config);
+            }
+
+            ReturnConfigResult legacyReturnResult = parseLegacyReturnConfig(playerName, playerObj);
+            invalid |= legacyReturnResult.invalid;
+            if (legacyReturnResult.config != null) {
+                legacyReturnSelection.acceptIntermediateConfig(playerName, legacyReturnResult.config);
+            }
         }
 
-        playerConfigs = loadedConfigs;
-        if (changed && !runtimeReload) {
-            writeConfig(configFile, playerConfigs);
-            getLogger().info("Saved migrated/validated {}", config_name);
-        }
-        return true;
+        PlayerBaseConfig.BaseConfig config = new PlayerBaseConfig.BaseConfig();
+        config.setPlayers(players);
+        config.setReturnConfig(legacyReturnSelection.config);
+        return new LoadResult(config, changed, invalid);
     }
 
     private ConfigResult parsePlayerConfig(String playerName, JsonObject obj) {
-        if (hasCoordinate(obj)) {
-            int x = getInt(obj, "x");
-            int y = getInt(obj, "y");
-            int z = getInt(obj, "z");
-            ButtonLocation location = new ButtonLocation("1", x, y, z);
-            getLogger().info("Migrating old config format for {}", playerName);
-            return new ConfigResult(new PlayerBaseConfig(
-                    List.of(location),
-                    false,
-                    new ReturnLocation(x, y, z)
-            ), true);
-        }
-
         if (!obj.has("locations") || !obj.get("locations").isJsonArray()) {
-            getLogger().error("Config entry for {} must contain old x/y/z fields or a locations array. Skipping.", playerName);
+            getLogger().error("Config entry for {} must contain a locations array. Skipping.", playerName);
             return new ConfigResult(null, true, true);
         }
 
@@ -182,7 +236,8 @@ public class BackToTheBase implements Plugin {
         JsonArray locationsJson = obj.getAsJsonArray("locations");
         List<ButtonLocation> locations = new ArrayList<>();
         Set<String> seenNumbers = new HashSet<>();
-        for (JsonElement locationElement : locationsJson) {
+        for (int i = 0; i < locationsJson.size(); i++) {
+            JsonElement locationElement = locationsJson.get(i);
             if (!locationElement.isJsonObject()) {
                 getLogger().error("Invalid location under {}: location must be an object. Skipping.", playerName);
                 changed = true;
@@ -190,13 +245,12 @@ public class BackToTheBase implements Plugin {
                 continue;
             }
             JsonObject locationObj = locationElement.getAsJsonObject();
-            if (!locationObj.has("number") && locationsJson.size() == 1) {
-                changed = true;
-            }
-            String number = getLocationNumber(playerName, locationObj, locationsJson.size());
+            ConfigValue<String> numberResult = getLocationNumber(playerName, locationObj, i);
+            changed |= numberResult.changed;
+            invalid |= numberResult.invalid;
+            String number = numberResult.value;
             if (number == null) {
                 changed = true;
-                invalid = true;
                 continue;
             }
             if (!isPositiveInteger(number)) {
@@ -232,73 +286,99 @@ public class BackToTheBase implements Plugin {
             return new ConfigResult(null, true, true);
         }
 
-        ConfigValue<Boolean> returnAfterUseResult = getBoolean(playerName, obj, "returnAfterUse");
-        changed |= returnAfterUseResult.changed;
-        invalid |= returnAfterUseResult.invalid;
-
-        ReturnLocationResult returnLocationResult = parseReturnLocation(playerName, obj);
-        changed |= returnLocationResult.changed;
-        invalid |= returnLocationResult.invalid;
-
-        boolean returnAfterUse = returnAfterUseResult.value;
-        ReturnLocation returnLocation = returnLocationResult.location;
-        if (returnLocation == null) {
-            ButtonLocation defaultLocation = findDefaultLocation(locations);
-            if (defaultLocation == null) {
-                defaultLocation = locations.get(0);
-                getLogger().warn("{} has no location number 1. returnLocation defaults to the first valid location.", playerName);
-            }
-            returnLocation = new ReturnLocation(defaultLocation.getX(), defaultLocation.getY(), defaultLocation.getZ());
+        if (obj.has("returnAfterUse") || obj.has("returnLocation")) {
             changed = true;
         }
-
-        if (!obj.has("returnAfterUse") || !obj.has("returnLocation")) {
-            changed = true;
-        }
-
-        return new ConfigResult(new PlayerBaseConfig(locations, returnAfterUse, returnLocation), changed, invalid);
+        return new ConfigResult(new PlayerBaseConfig(locations), changed, invalid);
     }
 
-    private String getLocationNumber(String playerName, JsonObject locationObj, int locationCount) {
-        if (!locationObj.has("number")) {
-            if (locationCount == 1) {
-                getLogger().warn("Location under {} is missing number. Defaulting it to 1.", playerName);
-                return "1";
+    private ReturnConfigResult parseGlobalReturnConfig(JsonObject root) {
+        if (!root.has("return")) {
+            getLogger().error("Config field return must be an object.");
+            return new ReturnConfigResult(new PlayerBaseConfig.ReturnConfig(), true, true);
+        }
+
+        JsonElement returnElement = root.get("return");
+        if (!returnElement.isJsonObject()) {
+            getLogger().error("Config field return must be an object.");
+            return new ReturnConfigResult(new PlayerBaseConfig.ReturnConfig(), true, true);
+        }
+
+        JsonObject returnObj = returnElement.getAsJsonObject();
+        ConfigValue<Boolean> enabledResult = getBoolean("return", returnObj, "enabled", false, true);
+        ReturnLocationResult locationResult = parseReturnLocation("return.location", returnObj.get("location"), true);
+
+        PlayerBaseConfig.ReturnConfig returnConfig = new PlayerBaseConfig.ReturnConfig();
+        returnConfig.setEnabled(enabledResult.value);
+        if (locationResult.location != null) {
+            returnConfig.setLocation(locationResult.location);
+        }
+
+        boolean changed = enabledResult.changed || locationResult.changed;
+        boolean invalid = enabledResult.invalid || locationResult.invalid;
+        return new ReturnConfigResult(returnConfig, changed, invalid);
+    }
+
+    private ReturnConfigResult parseLegacyReturnConfig(String playerName, JsonObject obj) {
+        if (!obj.has("returnAfterUse") && !obj.has("returnLocation")) {
+            return new ReturnConfigResult(null, false, false);
+        }
+
+        ConfigValue<Boolean> returnAfterUseResult = getBoolean(playerName, obj, "returnAfterUse", false, false);
+        ReturnLocationResult returnLocationResult = parseReturnLocation("returnLocation for " + playerName, obj.get("returnLocation"), false);
+        boolean invalid = returnAfterUseResult.invalid || returnLocationResult.invalid;
+
+        if (returnLocationResult.location == null) {
+            return new ReturnConfigResult(null, true, invalid);
+        }
+
+        PlayerBaseConfig.ReturnConfig returnConfig = new PlayerBaseConfig.ReturnConfig();
+        returnConfig.setEnabled(returnAfterUseResult.value);
+        returnConfig.setLocation(returnLocationResult.location);
+        return new ReturnConfigResult(returnConfig, true, invalid);
+    }
+
+    private ConfigValue<String> getLocationNumber(String playerName, JsonObject locationObj, int index) {
+        if (locationObj.has("number")) {
+            if (!locationObj.get("number").isJsonPrimitive()) {
+                getLogger().error("Location number under {} must be a positive integer string. Skipping.", playerName);
+                return new ConfigValue<>(null, true, true);
             }
-            getLogger().error("A location under {} is missing number. Multiple locations require explicit numbers.", playerName);
-            return null;
+            return new ConfigValue<>(locationObj.get("number").getAsString(), false, false);
         }
-        if (!locationObj.get("number").isJsonPrimitive()) {
-            getLogger().error("Location number under {} must be a positive integer string. Skipping.", playerName);
-            return null;
+        if (locationObj.has("priority")) {
+            if (locationObj.get("priority").isJsonPrimitive()) {
+                String priority = locationObj.get("priority").getAsString();
+                if (isPositiveInteger(priority)) {
+                    getLogger().warn("Location under {} is missing number. Using priority {} as number.", playerName, priority);
+                    return new ConfigValue<>(priority, true, false);
+                }
+            }
+            getLogger().error("Location priority under {} must be a positive integer. Skipping.", playerName);
+            return new ConfigValue<>(null, true, true);
         }
-        return locationObj.get("number").getAsString();
+        String number = String.valueOf(index + 1);
+        getLogger().warn("Location under {} is missing number. Defaulting it to {}.", playerName, number);
+        return new ConfigValue<>(number, true, false);
     }
 
-    private ReturnLocationResult parseReturnLocation(String playerName, JsonObject obj) {
-        if (!obj.has("returnLocation")) {
-            return new ReturnLocationResult(null, false, false);
+    private ReturnLocationResult parseReturnLocation(String label, JsonElement element, boolean required) {
+        if (element == null) {
+            if (required) {
+                getLogger().error("{} is required.", label);
+            }
+            return new ReturnLocationResult(null, true, required);
         }
-        JsonElement element = obj.get("returnLocation");
         if (!element.isJsonObject() || !hasCoordinate(element.getAsJsonObject())) {
-            getLogger().warn("returnLocation for {} is invalid. It will be defaulted on startup if possible.", playerName);
+            getLogger().error("{} must be an object with x, y, and z coordinates.", label);
             return new ReturnLocationResult(null, true, true);
         }
         JsonObject returnObj = element.getAsJsonObject();
-        return new ReturnLocationResult(new ReturnLocation(
+        return new ReturnLocationResult(new PlayerBaseConfig.ReturnLocation(
                 getInt(returnObj, "x"),
                 getInt(returnObj, "y"),
                 getInt(returnObj, "z")
         ), false, false);
-    }
-
-    private ButtonLocation findDefaultLocation(List<ButtonLocation> locations) {
-        for (ButtonLocation location : locations) {
-            if ("1".equals(location.getNumber())) {
-                return location;
-            }
-        }
-        return null;
     }
 
     private boolean hasCoordinate(JsonObject obj) {
@@ -316,19 +396,22 @@ public class BackToTheBase implements Plugin {
         }
     }
 
-    private ConfigValue<Boolean> getBoolean(String playerName, JsonObject obj, String key) {
+    private ConfigValue<Boolean> getBoolean(String owner, JsonObject obj, String key, boolean defaultValue, boolean required) {
         if (!obj.has(key)) {
-            return new ConfigValue<>(false, false, false);
+            if (required) {
+                getLogger().error("{} for {} is required.", key, owner);
+            }
+            return new ConfigValue<>(defaultValue, true, required);
         }
         JsonElement element = obj.get(key);
         if (!element.isJsonPrimitive()) {
-            getLogger().warn("{} for {} must be true or false. Defaulting to false.", key, playerName);
-            return new ConfigValue<>(false, true, true);
+            getLogger().warn("{} for {} must be true or false. Defaulting to {}.", key, owner, defaultValue);
+            return new ConfigValue<>(defaultValue, true, true);
         }
         JsonPrimitive primitive = element.getAsJsonPrimitive();
         if (!primitive.isBoolean()) {
-            getLogger().warn("{} for {} must be true or false. Defaulting to false.", key, playerName);
-            return new ConfigValue<>(false, true, true);
+            getLogger().warn("{} for {} must be true or false. Defaulting to {}.", key, owner, defaultValue);
+            return new ConfigValue<>(defaultValue, true, true);
         }
         return new ConfigValue<>(primitive.getAsBoolean(), false, false);
     }
@@ -337,9 +420,26 @@ public class BackToTheBase implements Plugin {
         return number != null && number.matches("[1-9][0-9]*");
     }
 
-    private void writeConfig(File configFile, Map<String, PlayerBaseConfig> config) throws IOException {
+    private void setLoadedConfig(PlayerBaseConfig.BaseConfig config) {
+        baseConfig = config;
+        playerConfigs = config.getPlayers();
+    }
+
+    private void writeConfig(File configFile, PlayerBaseConfig.BaseConfig config) throws IOException {
         try (Writer writer = new FileWriter(configFile)) {
             gson.toJson(config, writer);
+        }
+    }
+
+    private static class LoadResult {
+        private final PlayerBaseConfig.BaseConfig config;
+        private final boolean changed;
+        private final boolean invalid;
+
+        private LoadResult(PlayerBaseConfig.BaseConfig config, boolean changed, boolean invalid) {
+            this.config = config;
+            this.changed = changed;
+            this.invalid = invalid;
         }
     }
 
@@ -347,10 +447,6 @@ public class BackToTheBase implements Plugin {
         private final PlayerBaseConfig config;
         private final boolean changed;
         private final boolean invalid;
-
-        private ConfigResult(PlayerBaseConfig config, boolean changed) {
-            this(config, changed, false);
-        }
 
         private ConfigResult(PlayerBaseConfig config, boolean changed, boolean invalid) {
             this.config = config;
@@ -372,14 +468,63 @@ public class BackToTheBase implements Plugin {
     }
 
     private static class ReturnLocationResult {
-        private final ReturnLocation location;
+        private final PlayerBaseConfig.ReturnLocation location;
         private final boolean changed;
         private final boolean invalid;
 
-        private ReturnLocationResult(ReturnLocation location, boolean changed, boolean invalid) {
+        private ReturnLocationResult(PlayerBaseConfig.ReturnLocation location, boolean changed, boolean invalid) {
             this.location = location;
             this.changed = changed;
             this.invalid = invalid;
+        }
+    }
+
+    private static class ReturnConfigResult {
+        private final PlayerBaseConfig.ReturnConfig config;
+        private final boolean changed;
+        private final boolean invalid;
+
+        private ReturnConfigResult(PlayerBaseConfig.ReturnConfig config, boolean changed, boolean invalid) {
+            this.config = config;
+            this.changed = changed;
+            this.invalid = invalid;
+        }
+    }
+
+    private class LegacyReturnSelection {
+        private final PlayerBaseConfig.ReturnConfig config = new PlayerBaseConfig.ReturnConfig();
+        private boolean selected;
+
+        private void acceptSimpleLocation(PlayerBaseConfig.ReturnLocation location) {
+            if (!selected) {
+                config.setEnabled(false);
+                config.setLocation(location);
+                selected = true;
+            }
+        }
+
+        private void acceptIntermediateConfig(String playerName, PlayerBaseConfig.ReturnConfig candidate) {
+            if (!selected) {
+                config.setEnabled(candidate.isEnabled());
+                config.setLocation(candidate.getLocation());
+                selected = true;
+                return;
+            }
+            if (!sameReturnConfig(config, candidate)) {
+                getLogger().warn(
+                        "Multiple legacy player return configs were found. README format only supports one global return setting; ignoring return config for {}.",
+                        playerName
+                );
+            }
+        }
+
+        private boolean sameReturnConfig(PlayerBaseConfig.ReturnConfig first, PlayerBaseConfig.ReturnConfig second) {
+            PlayerBaseConfig.ReturnLocation firstLocation = first.getLocation();
+            PlayerBaseConfig.ReturnLocation secondLocation = second.getLocation();
+            return first.isEnabled() == second.isEnabled()
+                    && firstLocation.getX() == secondLocation.getX()
+                    && firstLocation.getY() == secondLocation.getY()
+                    && firstLocation.getZ() == secondLocation.getZ();
         }
     }
 }

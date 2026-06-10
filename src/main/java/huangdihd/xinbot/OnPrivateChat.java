@@ -10,7 +10,6 @@ import xin.bbtt.mcbot.event.Listener;
 import xin.bbtt.mcbot.events.PrivateChatEvent;
 import xin.bbtt.movement.Movement;
 
-import xin.bbtt.movements.LookAtMovement;
 import xin.bbtt.movements.PathMovement;
 import xin.bbtt.pathfinding.DStarLite;
 import xin.bbtt.pathfinding.Node;
@@ -59,7 +58,7 @@ public class OnPrivateChat implements Listener {
         }
 
         BackToTheBase.INSTANCE.getLogger().info("BackToTheBase command from {} selected location number {}.", senderName, number);
-        if (!queueButtonAction(movementSync, senderName, location, config)) {
+        if (!queueButtonAction(movementSync, senderName, location, BackToTheBase.INSTANCE.getBaseConfig().getReturnConfig())) {
             releaseBackAction();
         }
     }
@@ -97,7 +96,7 @@ public class OnPrivateChat implements Listener {
         return value != null && value.matches("[1-9][0-9]*");
     }
 
-    private boolean queueButtonAction(MovementSync movementSync, String playerName, ButtonLocation location, PlayerBaseConfig config) {
+    private boolean queueButtonAction(MovementSync movementSync, String playerName, ButtonLocation location, PlayerBaseConfig.ReturnConfig returnConfig) {
         org.cloudburstmc.math.vector.Vector3i positionInt = location.toVector3i();
         World world = MovementSync.INSTANCE.getWorld();
         ButtonTarget target = getButtonTarget(world, positionInt);
@@ -124,7 +123,7 @@ public class OnPrivateChat implements Listener {
             );
         }
 
-        movementSync.getMovementController().addMovement(new PrepareButtonClickMovement(playerName, location, config));
+        movementSync.getMovementController().addMovement(new PrepareButtonClickMovement(playerName, location, returnConfig));
         return true;
     }
 
@@ -289,13 +288,13 @@ public class OnPrivateChat implements Listener {
     private static class PrepareButtonClickMovement extends Movement {
         private final String playerName;
         private final ButtonLocation location;
-        private final PlayerBaseConfig config;
+        private final PlayerBaseConfig.ReturnConfig returnConfig;
         private boolean handedOff;
 
-        private PrepareButtonClickMovement(String playerName, ButtonLocation location, PlayerBaseConfig config) {
+        private PrepareButtonClickMovement(String playerName, ButtonLocation location, PlayerBaseConfig.ReturnConfig returnConfig) {
             this.playerName = playerName;
             this.location = location;
-            this.config = config;
+            this.returnConfig = returnConfig;
         }
 
         @Override
@@ -321,19 +320,16 @@ public class OnPrivateChat implements Listener {
                     return;
                 }
 
-                MovementSync.INSTANCE.getMovementController().addMovement(new LookAtMovement(
-                        target.hitPosition()
-                ));
-
                 MovementSync.INSTANCE.getMovementController().addMovement(new UseItemOnMovement(
                         target.position(),
-                        target.direction()
+                        target.direction(),
+                        target.hitPosition()
                 ));
 
                 BackToTheBase.INSTANCE.getLogger().info("Looking at and clicking pearl button location {} for {}.", location.getNumber(), playerName);
                 
-                if (config.isReturnAfterUse()) {
-                    MovementSync.INSTANCE.getMovementController().addMovement(new ReturnAfterUseMovement(playerName, config.getReturnLocation()));
+                if (returnConfig.isEnabled()) {
+                    MovementSync.INSTANCE.getMovementController().addMovement(new ReturnAfterUseMovement(playerName, returnConfig.getLocation()));
                 } else {
                     MovementSync.INSTANCE.getMovementController().addMovement(new FinishBackActionMovement());
                 }
@@ -362,10 +358,10 @@ public class OnPrivateChat implements Listener {
 
     private static class ReturnAfterUseMovement extends Movement {
         private final String playerName;
-        private final ReturnLocation returnLocation;
+        private final PlayerBaseConfig.ReturnLocation returnLocation;
         private boolean handedOff;
 
-        private ReturnAfterUseMovement(String playerName, ReturnLocation returnLocation) {
+        private ReturnAfterUseMovement(String playerName, PlayerBaseConfig.ReturnLocation returnLocation) {
             this.playerName = playerName;
             this.returnLocation = returnLocation;
         }
@@ -374,7 +370,7 @@ public class OnPrivateChat implements Listener {
         public void init() {
             try {
                 if (returnLocation == null) {
-                    BackToTheBase.INSTANCE.getLogger().warn("returnAfterUse is true for {}, but returnLocation is missing.", playerName);
+                    BackToTheBase.INSTANCE.getLogger().warn("return.enabled is true, but return.location is missing.");
                     MovementSync.INSTANCE.getMovementController().addMovement(new FinishBackActionMovement());
                     handedOff = true;
                     return;
