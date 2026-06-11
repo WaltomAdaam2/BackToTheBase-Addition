@@ -1,6 +1,8 @@
 name: BackToTheBase
 main: huangdihd.xinbot.BackToTheBase
+
 version: 1.7.0-SNAPSHOT
+
 type: PLUGIN
 depend:
   - MovementSync
