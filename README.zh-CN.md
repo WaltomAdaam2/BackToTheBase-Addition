@@ -22,7 +22,7 @@
 
 ## 玩家命令
 
-玩家向机器人发送私聊消息(/msg 珍珠号))：
+玩家向机器人发送私聊消息(/msg 珍珠号)：
 
 | 命令 | 说明 |
 | --- | --- |
@@ -50,10 +50,10 @@
 | `backtothebase loc add <player> <number> <x> <y> <z>` | 添加珍珠坐标。 |
 | `backtothebase loc set <player> <number> <x> <y> <z>` | 设置或覆盖珍珠坐标。 |
 | `backtothebase loc remove <player> <number>` | 请求删除珍珠坐标，需要 `confirm` 确认。 |
-| `backtothebase returnenable true|false` | 开启或关闭点击后的返回功能。 |
+| `backtothebase returnenable true\|false` | 开启或关闭点击后的返回功能。 |
 | `backtothebase returnpoint <x> <y> <z>` | 设置返回坐标。 |
-| `backtothebase admin add|remove <player>` | 管理游戏内管理员。 |
-| `backtothebase adminenable true|false` | 开启或关闭游戏内管理命令。 |
+| `backtothebase admin add\|remove <player>` | 管理游戏内管理员。 |
+| `backtothebase adminenable true\|false` | 开启或关闭游戏内管理命令。 |
 | `backtothebase confirm` | 确认待执行的删除操作。 |
 
 ## 游戏内管理命令
@@ -134,3 +134,8 @@
 ```bash
 mvn clean package
 ```
+
+## 更多说明
+
+- 当 BackToTheBase 任务超时时，插件会调用 MovementSync 的 `cancelAll()` 来清理过期移动状态。由于 MovementSync 目前没有按插件范围取消移动的 API，这可能会取消其他排队中的 MovementSync 移动。
+- UseItemOnMovement 会先发送旋转包，再发送 UseItemOnPacket，这样服务端交互会瞄准按钮点击位置。点击会延迟到后续 movement tick 执行，避免旋转和交互在同一 tick 内发送。

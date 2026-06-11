@@ -36,11 +36,15 @@ public class BackToTheBase implements Plugin {
     private final Logger logger = LoggerFactory.getLogger(BackToTheBase.class.getSimpleName());
     public static BackToTheBase INSTANCE;
     public PlayerBaseConfig.BaseConfig baseConfig = new PlayerBaseConfig.BaseConfig();
-    public Map<String, PlayerBaseConfig> playerConfigs = baseConfig.getPlayers();
     public static final String config_name = "base_config.json";
     private static final int MAX_ADMINS = 3;
+    private static final long PENDING_ACTION_TIMEOUT_MS = 60_000L;
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private final Map<String, PendingAction> pendingActions = new ConcurrentHashMap<>();
+
+    public Map<String, PlayerBaseConfig> getPlayerConfigs() {
+        return baseConfig.getPlayers();
+    }
 
     @Override
     public void onLoad() {
@@ -279,6 +283,8 @@ public class BackToTheBase implements Plugin {
         JsonArray locationsJson = obj.getAsJsonArray("locations");
         List<ButtonLocation> locations = new ArrayList<>();
         Set<String> seenNumbers = new HashSet<>();
+        Set<String> explicitNumbers = explicitLocationNumbers(locationsJson);
+        Set<String> reservedNumbers = reservedLocationNumbers(locationsJson);
         for (int i = 0; i < locationsJson.size(); i++) {
             JsonElement locationElement = locationsJson.get(i);
             if (!locationElement.isJsonObject()) {
@@ -288,7 +294,7 @@ public class BackToTheBase implements Plugin {
                 continue;
             }
             JsonObject locationObj = locationElement.getAsJsonObject();
-            ConfigValue<String> numberResult = getLocationNumber(playerName, locationObj, i);
+            ConfigValue<String> numberResult = getLocationNumber(playerName, locationObj, seenNumbers, explicitNumbers, reservedNumbers);
             changed |= numberResult.changed;
             invalid |= numberResult.invalid;
             String number = numberResult.value;
@@ -456,7 +462,50 @@ public class BackToTheBase implements Plugin {
         return new ReturnConfigResult(returnConfig, true, invalid);
     }
 
-    private ConfigValue<String> getLocationNumber(String playerName, JsonObject locationObj, int index) {
+    private Set<String> reservedLocationNumbers(JsonArray locationsJson) {
+        Set<String> reservedNumbers = new HashSet<>();
+        for (JsonElement locationElement : locationsJson) {
+            if (!locationElement.isJsonObject()) {
+                continue;
+            }
+            JsonObject locationObj = locationElement.getAsJsonObject();
+            String number = null;
+            if (locationObj.has("number") && locationObj.get("number").isJsonPrimitive()) {
+                number = locationObj.get("number").getAsString();
+            } else if (!locationObj.has("number") && locationObj.has("priority") && locationObj.get("priority").isJsonPrimitive()) {
+                number = locationObj.get("priority").getAsString();
+            }
+            if (isPositiveInteger(number)) {
+                reservedNumbers.add(number);
+            }
+        }
+        return reservedNumbers;
+    }
+
+    private Set<String> explicitLocationNumbers(JsonArray locationsJson) {
+        Set<String> explicitNumbers = new HashSet<>();
+        for (JsonElement locationElement : locationsJson) {
+            if (!locationElement.isJsonObject()) {
+                continue;
+            }
+            JsonObject locationObj = locationElement.getAsJsonObject();
+            if (locationObj.has("number") && locationObj.get("number").isJsonPrimitive()) {
+                String number = locationObj.get("number").getAsString();
+                if (isPositiveInteger(number)) {
+                    explicitNumbers.add(number);
+                }
+            }
+        }
+        return explicitNumbers;
+    }
+
+    private ConfigValue<String> getLocationNumber(
+            String playerName,
+            JsonObject locationObj,
+            Set<String> seenNumbers,
+            Set<String> explicitNumbers,
+            Set<String> reservedNumbers
+    ) {
         if (locationObj.has("number")) {
             if (!locationObj.get("number").isJsonPrimitive()) {
                 getLogger().error("Location number under {} must be a positive integer string. Skipping.", playerName);
@@ -468,6 +517,11 @@ public class BackToTheBase implements Plugin {
             if (locationObj.get("priority").isJsonPrimitive()) {
                 String priority = locationObj.get("priority").getAsString();
                 if (isPositiveInteger(priority)) {
+                    if (explicitNumbers.contains(priority)) {
+                        String number = nextAvailableLocationNumber(seenNumbers, reservedNumbers);
+                        getLogger().warn("Location under {} has priority {} reserved by an explicit number. Defaulting it to {}.", playerName, priority, number);
+                        return new ConfigValue<>(number, true, false);
+                    }
                     getLogger().warn("Location under {} is missing number. Using priority {} as number.", playerName, priority);
                     return new ConfigValue<>(priority, true, false);
                 }
@@ -475,9 +529,17 @@ public class BackToTheBase implements Plugin {
             getLogger().error("Location priority under {} must be a positive integer. Skipping.", playerName);
             return new ConfigValue<>(null, true, true);
         }
-        String number = String.valueOf(index + 1);
+        String number = nextAvailableLocationNumber(seenNumbers, reservedNumbers);
         getLogger().warn("Location under {} is missing number. Defaulting it to {}.", playerName, number);
         return new ConfigValue<>(number, true, false);
+    }
+
+    private String nextAvailableLocationNumber(Set<String> seenNumbers, Set<String> reservedNumbers) {
+        int number = 1;
+        while (seenNumbers.contains(String.valueOf(number)) || reservedNumbers.contains(String.valueOf(number))) {
+            number++;
+        }
+        return String.valueOf(number);
     }
 
     private ReturnLocationResult parseReturnLocation(String label, JsonElement element, boolean required) {
@@ -544,7 +606,6 @@ public class BackToTheBase implements Plugin {
             config = new PlayerBaseConfig.BaseConfig();
         }
         baseConfig = config;
-        playerConfigs = config.getPlayers();
     }
 
     private boolean hasValidPlayers(PlayerBaseConfig.BaseConfig config) {
@@ -633,17 +694,17 @@ public class BackToTheBase implements Plugin {
         }
         String playerName = args[2];
         if ("add".equalsIgnoreCase(args[1])) {
-            if (playerConfigs.containsKey(playerName)) {
+            if (getPlayerConfigs().containsKey(playerName)) {
                 return List.of("[BackToTheBase] 玩家 " + playerName + " 已存在。");
             }
-            playerConfigs.put(playerName, new PlayerBaseConfig(new ArrayList<>()));
+            getPlayerConfigs().put(playerName, new PlayerBaseConfig(new ArrayList<>()));
             if (!saveCurrentConfig()) {
                 return saveFailedMessage();
             }
             return List.of("[BackToTheBase] 已添加玩家 " + playerName + "。");
         }
         if ("remove".equalsIgnoreCase(args[1])) {
-            if (!playerConfigs.containsKey(playerName)) {
+            if (!getPlayerConfigs().containsKey(playerName)) {
                 return List.of("[BackToTheBase] 玩家 " + playerName + " 不存在。");
             }
             pendingActions.put(scope, PendingAction.removePlayer(playerName));
@@ -666,7 +727,7 @@ public class BackToTheBase implements Plugin {
             if (args.length != 4) {
                 return List.of("[BackToTheBase] 用法: loc remove <playerName> <number>");
             }
-            PlayerBaseConfig config = playerConfigs.get(args[2]);
+            PlayerBaseConfig config = getPlayerConfigs().get(args[2]);
             if (config == null) {
                 return List.of("[BackToTheBase] 玩家 " + args[2] + " 不存在。");
             }
@@ -690,11 +751,11 @@ public class BackToTheBase implements Plugin {
         if (!isPositiveInteger(number) || x == null || y == null || z == null) {
             return List.of("[BackToTheBase] 编号和坐标必须是整数。");
         }
-        PlayerBaseConfig config = playerConfigs.get(playerName);
+        PlayerBaseConfig config = getPlayerConfigs().get(playerName);
         boolean createdPlayer = false;
         if (config == null) {
             config = new PlayerBaseConfig(new ArrayList<>());
-            playerConfigs.put(playerName, config);
+            getPlayerConfigs().put(playerName, config);
             createdPlayer = true;
         }
         if ("add".equalsIgnoreCase(args[1]) && config.getLocation(number) != null) {
@@ -730,7 +791,7 @@ public class BackToTheBase implements Plugin {
                 return List.of("[BackToTheBase] 管理员 " + playerName + " 已存在。");
             }
             if (admins.size() >= MAX_ADMINS) {
-                return List.of("[BackToTheBase] 管理员数量已达到上限 3，无法添加 " + playerName + "。");
+                return List.of("[BackToTheBase] 管理员数量已达到上限 " + MAX_ADMINS + "，无法添加 " + playerName + "。");
             }
 
             admins.add(playerName);
@@ -767,20 +828,23 @@ public class BackToTheBase implements Plugin {
         if (action == null) {
             return List.of("[BackToTheBase] 没有需要确认的操作。");
         }
+        if (action.isExpired()) {
+            return List.of("[BackToTheBase] 确认操作已超时，请重新执行删除命令。");
+        }
 
         if (action.type == PendingType.REMOVE_PLAYER) {
-            if (!playerConfigs.containsKey(action.playerName)) {
+            if (!getPlayerConfigs().containsKey(action.playerName)) {
                 return List.of("[BackToTheBase] 玩家 " + action.playerName + " 不存在。");
             }
 
-            playerConfigs.remove(action.playerName);
+            getPlayerConfigs().remove(action.playerName);
             if (!saveCurrentConfig()) {
                 return saveFailedMessage();
             }
             return List.of("[BackToTheBase] 已确认，删除玩家 " + action.playerName + "。");
         }
 
-        PlayerBaseConfig config = playerConfigs.get(action.playerName);
+        PlayerBaseConfig config = getPlayerConfigs().get(action.playerName);
         if (config == null) {
             return List.of("[BackToTheBase] 玩家 " + action.playerName + " 不存在。");
         }
@@ -803,11 +867,11 @@ public class BackToTheBase implements Plugin {
         lines.add("[BackToTheBase]: 返回功能: " + (ret.isEnabled() ? "运行中 (配置: 启用)" : "已停止 (配置: 禁用)"));
         lines.add("[BackToTheBase]: 返回坐标: " + loc.getX() + " " + loc.getY() + " " + loc.getZ());
         lines.add("[BackToTheBase]: 游戏内管理: " + (baseConfig.getAdmin().isEnabled() ? "运行中 (配置: 启用)" : "已停止 (配置: 禁用)"));
-        lines.add("[BackToTheBase]: 管理员数量: " + adminPlayers().size() + " / 3");
-        lines.add("[BackToTheBase]: 玩家数量: " + playerConfigs.size());
+        lines.add("[BackToTheBase]: 管理员数量: " + adminPlayers().size() + " / " + MAX_ADMINS);
+        lines.add("[BackToTheBase]: 玩家数量: " + getPlayerConfigs().size());
         lines.add("[BackToTheBase]: 珍珠坐标数量: " + locationCount());
         lines.add("[BackToTheBase]: 玩家数据:");
-        for (Map.Entry<String, PlayerBaseConfig> entry : playerConfigs.entrySet()) {
+        for (Map.Entry<String, PlayerBaseConfig> entry : getPlayerConfigs().entrySet()) {
             lines.add("[BackToTheBase]:   " + entry.getKey() + ": " + safeLocations(entry.getValue()).size() + " 个珍珠坐标");
         }
         lines.add("[BackToTheBase]: ================================");
@@ -820,19 +884,19 @@ public class BackToTheBase implements Plugin {
         return "[BackToTheBase] 状态: 返回功能=" + enabledText(ret.isEnabled()) +
                 ", 返回坐标=" + loc.getX() + " " + loc.getY() + " " + loc.getZ() +
                 ", 游戏内管理=" + enabledText(baseConfig.getAdmin().isEnabled()) +
-                ", 管理员=" + adminPlayers().size() + "/3, 玩家=" + playerConfigs.size() +
+                ", 管理员=" + adminPlayers().size() + "/" + MAX_ADMINS + ", 玩家=" + getPlayerConfigs().size() +
                 ", 珍珠坐标=" + locationCount();
     }
 
     private List<String> consolePlayerList() {
         List<String> lines = new ArrayList<>();
         lines.add("[BackToTheBase]: ===== BackToTheBase 玩家列表 =====");
-        lines.add("[BackToTheBase]: 玩家数量: " + playerConfigs.size());
-        if (playerConfigs.isEmpty()) {
+        lines.add("[BackToTheBase]: 玩家数量: " + getPlayerConfigs().size());
+        if (getPlayerConfigs().isEmpty()) {
             lines.add("[BackToTheBase]: 暂无玩家配置。");
         } else {
             lines.add("[BackToTheBase]: 玩家数据:");
-            for (Map.Entry<String, PlayerBaseConfig> entry : playerConfigs.entrySet()) {
+            for (Map.Entry<String, PlayerBaseConfig> entry : getPlayerConfigs().entrySet()) {
                 lines.add("[BackToTheBase]:   " + entry.getKey() + ": 珍珠坐标 " + locationNumbers(entry.getValue()));
             }
         }
@@ -841,18 +905,18 @@ public class BackToTheBase implements Plugin {
     }
 
     private String gamePlayerList() {
-        if (playerConfigs.isEmpty()) {
+        if (getPlayerConfigs().isEmpty()) {
             return "[BackToTheBase] 暂无玩家配置。";
         }
         List<String> parts = new ArrayList<>();
-        for (Map.Entry<String, PlayerBaseConfig> entry : playerConfigs.entrySet()) {
+        for (Map.Entry<String, PlayerBaseConfig> entry : getPlayerConfigs().entrySet()) {
             parts.add(entry.getKey() + "(珍珠坐标 " + locationNumbers(entry.getValue()) + ")");
         }
         return "[BackToTheBase] 玩家列表: " + String.join("; ", parts);
     }
 
     private List<String> consoleLocList(String playerName) {
-        PlayerBaseConfig config = playerConfigs.get(playerName);
+        PlayerBaseConfig config = getPlayerConfigs().get(playerName);
         if (config == null) {
             return List.of("[BackToTheBase]: 玩家 " + playerName + " 不存在。");
         }
@@ -867,7 +931,7 @@ public class BackToTheBase implements Plugin {
     }
 
     private String gameLocList(String playerName) {
-        PlayerBaseConfig config = playerConfigs.get(playerName);
+        PlayerBaseConfig config = getPlayerConfigs().get(playerName);
         if (config == null) {
             return "[BackToTheBase] 玩家 " + playerName + " 不存在。";
         }
@@ -923,7 +987,7 @@ public class BackToTheBase implements Plugin {
 
     private int locationCount() {
         int count = 0;
-        for (PlayerBaseConfig config : playerConfigs.values()) {
+        for (PlayerBaseConfig config : getPlayerConfigs().values()) {
             count += safeLocations(config).size();
         }
         return count;
@@ -1002,7 +1066,8 @@ public class BackToTheBase implements Plugin {
         }
 
         private boolean isPlainCommandLabel(String label) {
-            return "backtothebase".equalsIgnoreCase(label);
+            return "backtothebase".equalsIgnoreCase(label)
+                    || "BackToTheBase:backtothebase".equalsIgnoreCase(label);
         }
 
         private List<String> rootSuggestions(String prefix) {
@@ -1014,7 +1079,7 @@ public class BackToTheBase implements Plugin {
                 return filter(List.of("add", "remove", "list"), args[1]);
             }
             if (args.length == 3 && "remove".equalsIgnoreCase(args[1])) {
-                return filter(new ArrayList<>(playerConfigs.keySet()), args[2]);
+                return filter(new ArrayList<>(getPlayerConfigs().keySet()), args[2]);
             }
             return List.of();
         }
@@ -1025,7 +1090,7 @@ public class BackToTheBase implements Plugin {
             }
             String action = args[1].toLowerCase();
             if (args.length == 3 && List.of("add", "set", "remove", "list").contains(action)) {
-                return filter(new ArrayList<>(playerConfigs.keySet()), args[2]);
+                return filter(new ArrayList<>(getPlayerConfigs().keySet()), args[2]);
             }
             if (args.length == 4 && List.of("set", "remove").contains(action)) {
                 return filter(locationNumberList(args[2]), args[3]);
@@ -1045,7 +1110,7 @@ public class BackToTheBase implements Plugin {
 
         private List<String> locationNumberList(String playerName) {
             List<String> numbers = new ArrayList<>();
-            PlayerBaseConfig config = playerConfigs.get(playerName);
+            PlayerBaseConfig config = getPlayerConfigs().get(playerName);
             for (ButtonLocation location : safeLocations(config)) {
                 numbers.add(location.getNumber());
             }
@@ -1073,11 +1138,13 @@ public class BackToTheBase implements Plugin {
         private final PendingType type;
         private final String playerName;
         private final String number;
+        private final long createdAt;
 
         private PendingAction(PendingType type, String playerName, String number) {
             this.type = type;
             this.playerName = playerName;
             this.number = number;
+            this.createdAt = System.currentTimeMillis();
         }
 
         private static PendingAction removePlayer(String playerName) {
@@ -1086,6 +1153,10 @@ public class BackToTheBase implements Plugin {
 
         private static PendingAction removeLoc(String playerName, String number) {
             return new PendingAction(PendingType.REMOVE_LOC, playerName, number);
+        }
+
+        private boolean isExpired() {
+            return System.currentTimeMillis() - createdAt > PENDING_ACTION_TIMEOUT_MS;
         }
     }
 

@@ -47,7 +47,7 @@ public class OnPrivateChat implements Listener {
         String number = parseRequestedNumber(senderName, args);
         if (number == null) return;
 
-        PlayerBaseConfig config = BackToTheBase.INSTANCE.playerConfigs.get(senderName);
+        PlayerBaseConfig config = BackToTheBase.INSTANCE.getPlayerConfigs().get(senderName);
         if (config == null) {
             BackToTheBase.INSTANCE.getLogger().warn("[BackToTheBase] 已忽略 {} 的 back 命令，因为该玩家不在玩家列表中。", senderName);
             return;

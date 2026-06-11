@@ -38,7 +38,7 @@ Example:
 
 ## Console Commands
 
-Use the command name `backtothebase`. Note that BackToTheBase:backtothebase is not avaliable.
+Use the command name `backtothebase`. Note that BackToTheBase:backtothebase is not available.
 
 | Command | Description |
 | --- | --- |
@@ -50,10 +50,10 @@ Use the command name `backtothebase`. Note that BackToTheBase:backtothebase is n
 | `backtothebase loc add <player> <number> <x> <y> <z>` | Add a button location. |
 | `backtothebase loc set <player> <number> <x> <y> <z>` | Set or replace a button location. |
 | `backtothebase loc remove <player> <number>` | Ask to remove a location. Requires `confirm`. |
-| `backtothebase returnenable true|false` | Enable or disable returning after clicking. |
+| `backtothebase returnenable true\|false` | Enable or disable returning after clicking. |
 | `backtothebase returnpoint <x> <y> <z>` | Set the return location. |
-| `backtothebase admin add|remove <player>` | Manage in-game admins. |
-| `backtothebase adminenable true|false` | Enable or disable in-game admin commands. |
+| `backtothebase admin add\|remove <player>` | Manage in-game admins. |
+| `backtothebase adminenable true\|false` | Enable or disable in-game admin commands. |
 | `backtothebase confirm` | Confirm a pending remove action. |
 
 ## In-game Admin Commands
@@ -134,3 +134,8 @@ They will automatically migrate to the new `players.locations` format.
 ```bash
 mvn clean package
 ```
+
+## Implementation Notes
+
+- When a BackToTheBase action times out, the plugin calls MovementSync `cancelAll()` to release stale movement state. This may cancel other queued MovementSync movements because MovementSync does not currently provide a plugin-scoped cancel API.
+- UseItemOnMovement sends a rotation packet before UseItemOnPacket so the server-side interaction is aimed at the button hit position. The click is delayed to a later movement tick to avoid sending rotation and interaction in the same tick.
