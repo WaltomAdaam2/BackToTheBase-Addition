@@ -8,6 +8,10 @@ import java.util.List;
 import java.util.Map;
 
 public class PlayerBaseConfig {
+    public static final int DEFAULT_RETURN_X = 0;
+    public static final int DEFAULT_RETURN_Y = 60;
+    public static final int DEFAULT_RETURN_Z = 0;
+
     private List<ButtonLocation> locations = new ArrayList<>();
 
     public PlayerBaseConfig() {
@@ -26,8 +30,11 @@ public class PlayerBaseConfig {
     }
 
     public ButtonLocation getLocation(String number) {
+        if (number == null || locations == null) {
+            return null;
+        }
         for (ButtonLocation location : locations) {
-            if (location.getNumber().equals(number)) {
+            if (location != null && number.equals(location.getNumber())) {
                 return location;
             }
         }
@@ -38,6 +45,7 @@ public class PlayerBaseConfig {
         private Map<String, PlayerBaseConfig> players = new LinkedHashMap<>();
         @SerializedName("return")
         private ReturnConfig returnConfig = new ReturnConfig();
+        private AdminConfig admin = new AdminConfig();
 
         public Map<String, PlayerBaseConfig> getPlayers() {
             return players;
@@ -53,6 +61,14 @@ public class PlayerBaseConfig {
 
         public void setReturnConfig(ReturnConfig returnConfig) {
             this.returnConfig = returnConfig;
+        }
+
+        public AdminConfig getAdmin() {
+            return admin;
+        }
+
+        public void setAdmin(AdminConfig admin) {
+            this.admin = admin;
         }
     }
 
@@ -78,9 +94,9 @@ public class PlayerBaseConfig {
     }
 
     public static class ReturnLocation {
-        private int x = 0;
-        private int y = 60;
-        private int z = 0;
+        private int x = DEFAULT_RETURN_X;
+        private int y = DEFAULT_RETURN_Y;
+        private int z = DEFAULT_RETURN_Z;
 
         public ReturnLocation() {
         }
@@ -113,6 +129,27 @@ public class PlayerBaseConfig {
 
         public void setZ(int z) {
             this.z = z;
+        }
+    }
+
+    public static class AdminConfig {
+        private boolean enabled = false;
+        private List<String> players = new ArrayList<>();
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public List<String> getPlayers() {
+            return players;
+        }
+
+        public void setPlayers(List<String> players) {
+            this.players = players;
         }
     }
 }

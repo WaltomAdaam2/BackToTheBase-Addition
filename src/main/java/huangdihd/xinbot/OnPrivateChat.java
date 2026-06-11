@@ -29,10 +29,19 @@ public class OnPrivateChat implements Listener {
 
     @EventHandler
     public void onBack(PrivateChatEvent event) {
-        String[] args = event.getMessage().trim().split("\\s+");
-        if (args.length == 0 || !"back".equals(args[0])) return;
+        String message = event.getMessage();
+        if (message == null || message.isBlank()) {
+            return;
+        }
+        String[] args = message.trim().split("\\s+");
 
         String senderName = event.getSender().getName();
+        if ("@backtothebase".equalsIgnoreCase(args[0])) {
+            handleAdminCommand(senderName, args);
+            return;
+        }
+        if (!"back".equalsIgnoreCase(args[0])) return;
+
         BackToTheBase.INSTANCE.reloadConfig();
 
         String number = parseRequestedNumber(senderName, args);
@@ -40,33 +49,70 @@ public class OnPrivateChat implements Listener {
 
         PlayerBaseConfig config = BackToTheBase.INSTANCE.playerConfigs.get(senderName);
         if (config == null) {
-            BackToTheBase.INSTANCE.getLogger().warn("No BackToTheBase config exists for {}.", senderName);
+            BackToTheBase.INSTANCE.getLogger().warn("[BackToTheBase] 已忽略 {} 的 back 命令，因为该玩家不在玩家列表中。", senderName);
             return;
         }
 
         ButtonLocation location = config.getLocation(number);
         if (location == null) {
             BackToTheBase.INSTANCE.getLogger().warn("No pearl button location number {} configured for {}.", number, senderName);
+            sendPrivate(senderName, "[BackToTheBase] 珍珠坐标 " + number + " 未配置。");
             return;
         }
 
-        if (!Bot.INSTANCE.getPluginManager().isPluginLoaded("MovementSync")) return;
-        if (!(Bot.INSTANCE.getPluginManager().getPlugin("MovementSync").getPlugin() instanceof MovementSync movementSync)) return;
+        if (!Bot.INSTANCE.getPluginManager().isPluginEnabled("MovementSync")) {
+            BackToTheBase.INSTANCE.getLogger().warn("[BackToTheBase] MovementSync 未启用，无法执行 back 命令。");
+            return;
+        }
+        if (!(Bot.INSTANCE.getPluginManager().getPlugin("MovementSync").getPlugin() instanceof MovementSync movementSync)) {
+            BackToTheBase.INSTANCE.getLogger().error("[BackToTheBase] MovementSync 插件实例异常，无法执行 back 命令。");
+            return;
+        }
         if (!acquireBackAction(senderName)) {
             BackToTheBase.INSTANCE.getLogger().warn("Ignoring back command from {} because a BackToTheBase action is already running.", senderName);
+            sendPrivate(senderName, "[BackToTheBase] 已有拉珍珠任务正在运行。");
             return;
         }
 
         BackToTheBase.INSTANCE.getLogger().info("BackToTheBase command from {} selected location number {}.", senderName, number);
+        sendPrivate(senderName, "[BackToTheBase] 正在拉动珍珠坐标 " + number + "。");
         if (!queueButtonAction(movementSync, senderName, location, BackToTheBase.INSTANCE.getBaseConfig().getReturnConfig())) {
             releaseBackAction();
         }
+    }
+
+    private void handleAdminCommand(String senderName, String[] args) {
+        BackToTheBase.INSTANCE.reloadConfig();
+
+        PlayerBaseConfig.AdminConfig admin = BackToTheBase.INSTANCE.getBaseConfig().getAdmin();
+        if (!admin.isEnabled()) {
+            BackToTheBase.INSTANCE.getLogger().warn("[BackToTheBase] 已忽略 {} 的游戏内管理命令，因为游戏内管理已关闭。", senderName);
+            return;
+        }
+        if (admin.getPlayers() == null || !admin.getPlayers().contains(senderName)) {
+            BackToTheBase.INSTANCE.getLogger().warn("[BackToTheBase] 已忽略 {} 的游戏内管理命令，因为该玩家不是管理员。", senderName);
+            return;
+        }
+        String[] commandArgs = new String[args.length - 1];
+        System.arraycopy(args, 1, commandArgs, 0, commandArgs.length);
+        for (String line : BackToTheBase.INSTANCE.handleManagementCommand(senderName, false, commandArgs)) {
+            sendPrivate(senderName, line);
+        }
+    }
+
+    private void sendPrivate(String playerName, String message) {
+        Bot.INSTANCE.sendCommand("msg " + playerName + " " + message);
     }
 
     private static boolean acquireBackAction(String senderName) {
         long now = System.currentTimeMillis();
         if (BACK_ACTION_RUNNING.get() && backActionStartTime > 0L && now - backActionStartTime > ACTION_TIMEOUT_MS) {
             BackToTheBase.INSTANCE.getLogger().warn("BackToTheBase action timed out. Releasing stale action lock before handling command from {}.", senderName);
+            try {
+                MovementSync.INSTANCE.getMovementController().cancelAll();
+            } catch (Exception e) {
+                BackToTheBase.INSTANCE.getLogger().warn("Failed to cancel stale MovementSync movements after BackToTheBase timeout.", e);
+            }
             releaseBackAction();
         }
         if (!BACK_ACTION_RUNNING.compareAndSet(false, true)) {
@@ -327,8 +373,9 @@ public class OnPrivateChat implements Listener {
                 ));
 
                 BackToTheBase.INSTANCE.getLogger().info("Looking at and clicking pearl button location {} for {}.", location.getNumber(), playerName);
-                
+
                 if (returnConfig.isEnabled()) {
+                    MovementSync.INSTANCE.getMovementController().addMovement(new WaitTicksMovement(3));
                     MovementSync.INSTANCE.getMovementController().addMovement(new ReturnAfterUseMovement(playerName, returnConfig.getLocation()));
                 } else {
                     MovementSync.INSTANCE.getMovementController().addMovement(new FinishBackActionMovement());
@@ -353,6 +400,35 @@ public class OnPrivateChat implements Listener {
             if (!handedOff) {
                 releaseBackAction();
             }
+        }
+    }
+
+    private static class WaitTicksMovement extends Movement {
+        private int remainingTicks;
+
+        private WaitTicksMovement(int ticks) {
+            this.remainingTicks = ticks;
+        }
+
+        @Override
+        public void init() {
+        }
+
+        @Override
+        public void onTick() {
+            remainingTicks--;
+            if (remainingTicks <= 0) {
+                setFinished(true);
+            }
+        }
+
+        @Override
+        public long getTime() {
+            return 50;
+        }
+
+        @Override
+        public void onStop() {
         }
     }
 
