@@ -22,6 +22,9 @@ public class PlayerBaseConfig {
     }
 
     public List<ButtonLocation> getLocations() {
+        if (locations == null) {
+            locations = new ArrayList<>();
+        }
         return locations;
     }
 
@@ -48,6 +51,9 @@ public class PlayerBaseConfig {
         private AdminConfig admin = new AdminConfig();
 
         public Map<String, PlayerBaseConfig> getPlayers() {
+            if (players == null) {
+                players = new LinkedHashMap<>();
+            }
             return players;
         }
 
@@ -56,6 +62,9 @@ public class PlayerBaseConfig {
         }
 
         public ReturnConfig getReturnConfig() {
+            if (returnConfig == null) {
+                returnConfig = new ReturnConfig();
+            }
             return returnConfig;
         }
 
@@ -64,6 +73,9 @@ public class PlayerBaseConfig {
         }
 
         public AdminConfig getAdmin() {
+            if (admin == null) {
+                admin = new AdminConfig();
+            }
             return admin;
         }
 
@@ -85,6 +97,9 @@ public class PlayerBaseConfig {
         }
 
         public ReturnLocation getLocation() {
+            if (location == null) {
+                location = new ReturnLocation();
+            }
             return location;
         }
 
@@ -145,6 +160,9 @@ public class PlayerBaseConfig {
         }
 
         public List<String> getPlayers() {
+            if (players == null) {
+                players = new ArrayList<>();
+            }
             return players;
         }
 

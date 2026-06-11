@@ -137,15 +137,29 @@ public class BackToTheBase implements Plugin {
 
         LoadResult result = root.has("players")
                 ? parseReadmeConfig(root)
-                : parseLegacyConfig(root, runtimeReload);
+                : parseLegacyConfig(root);
 
-        if (result == null || result.invalid) {
+        if (result == null) {
             getLogger().error("Load of {} failed validation. {}.", config_name, runtimeReload ? "Keeping previous config" : "Config file was not overwritten");
             return false;
         }
 
+        if (result.invalid) {
+            if (runtimeReload) {
+                getLogger().error("Load of {} failed validation. Keeping previous config.", config_name);
+                return false;
+            }
+
+            if (!hasValidPlayers(result.config)) {
+                getLogger().error("Load of {} failed validation and no valid player configs were found.", config_name);
+                return false;
+            }
+
+            getLogger().warn("Load of {} found invalid entries. Loading valid entries and skipping invalid ones.", config_name);
+        }
+
         setLoadedConfig(result.config);
-        if (result.changed && !runtimeReload) {
+        if (result.changed && !result.invalid && !runtimeReload && hasValidPlayers(result.config)) {
             backupConfig(configFile);
             writeConfig(configFile, baseConfig);
             getLogger().info("Saved migrated/validated {}", config_name);
@@ -196,7 +210,7 @@ public class BackToTheBase implements Plugin {
         return new LoadResult(config, changed, invalid);
     }
 
-    private LoadResult parseLegacyConfig(JsonObject root, boolean runtimeReload) {
+    private LoadResult parseLegacyConfig(JsonObject root) {
         boolean changed = false;
         boolean invalid = false;
         Map<String, PlayerBaseConfig> players = new LinkedHashMap<>();
@@ -334,8 +348,8 @@ public class BackToTheBase implements Plugin {
         }
 
         JsonObject returnObj = returnElement.getAsJsonObject();
-        ConfigValue<Boolean> enabledResult = getBoolean("return", returnObj, "enabled", false, true);
-        ReturnLocationResult locationResult = parseReturnLocation("return.location", returnObj.get("location"), true);
+        ConfigValue<Boolean> enabledResult = getBoolean("return", returnObj, "enabled", false, false);
+        ReturnLocationResult locationResult = parseReturnLocation("return.location", returnObj.get("location"), false);
 
         PlayerBaseConfig.ReturnConfig returnConfig = new PlayerBaseConfig.ReturnConfig();
         returnConfig.setEnabled(enabledResult.value);
@@ -470,8 +484,9 @@ public class BackToTheBase implements Plugin {
         if (element == null) {
             if (required) {
                 getLogger().error("{} is required.", label);
+                return new ReturnLocationResult(null, true, true);
             }
-            return new ReturnLocationResult(null, true, required);
+            return new ReturnLocationResult(null, true, false);
         }
         if (!element.isJsonObject() || !hasCoordinate(element.getAsJsonObject())) {
             getLogger().error("{} must be an object with x, y, and z coordinates.", label);
@@ -525,8 +540,15 @@ public class BackToTheBase implements Plugin {
     }
 
     private void setLoadedConfig(PlayerBaseConfig.BaseConfig config) {
+        if (config == null) {
+            config = new PlayerBaseConfig.BaseConfig();
+        }
         baseConfig = config;
         playerConfigs = config.getPlayers();
+    }
+
+    private boolean hasValidPlayers(PlayerBaseConfig.BaseConfig config) {
+        return config != null && !config.getPlayers().isEmpty();
     }
 
     private void writeConfig(File configFile, PlayerBaseConfig.BaseConfig config) throws IOException {
@@ -553,7 +575,7 @@ public class BackToTheBase implements Plugin {
         return List.of("[BackToTheBase] 配置保存失败，请检查日志。");
     }
 
-    public List<String> handleManagementCommand(String sender, boolean console, String[] args) {
+    public synchronized List<String> handleManagementCommand(String sender, boolean console, String[] args) {
         if (args.length == 0) {
             return List.of("[BackToTheBase] 未知命令。");
         }
@@ -1142,14 +1164,6 @@ public class BackToTheBase implements Plugin {
     private class LegacyReturnSelection {
         private final PlayerBaseConfig.ReturnConfig config = new PlayerBaseConfig.ReturnConfig();
         private boolean selected;
-
-        private void acceptSimpleLocation(PlayerBaseConfig.ReturnLocation location) {
-            if (!selected) {
-                config.setEnabled(false);
-                config.setLocation(location);
-                selected = true;
-            }
-        }
 
         private void acceptIntermediateConfig(String playerName, PlayerBaseConfig.ReturnConfig candidate) {
             if (!selected) {
