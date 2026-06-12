@@ -2,53 +2,73 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-一个 Xinbot 插件，可以通过按下配置好的按钮来触发末影珍珠装置，并将机器人带回基地。
+一个 Xinbot 插件，可以根据玩家配置按下指定的珍珠超传按钮，并可选择让机器人返回基地坐标。
 
 ## 功能
 
-* 能触发配置好的按钮位置来实现珍珠超传
-* 支持为不同玩家配置独立，多个的按钮位置和朝向检测
-* 使用简单的 JSON 配置文件
-* 可以设置在按下珍珠按钮后，让机器人自动返回到配置好的返回位置
-* 自动检测按钮的位置，朝向，以及最优路线
-* 在点击按钮前，自动寻找按钮附近可到达且安全的站立位置
-* 拥有简单的 JSON 配置，并且可以自动将旧版本配置格式迁移到新的 `locations` 格式
+- 支持每个玩家配置多个珍珠按钮坐标
+- `back` 默认使用 `1` 号坐标，`back <number>` 使用指定编号
+- 自动检测按钮朝向并自动寻找可到达的安全站位
+- 支持全局返回坐标
+- 支持控制台管理命令和 Tab 补全
 
-## 使用方法
+## 安装
 
-1. 安装 [MovementSync](https://github.com/huangdihd/movementsync)。
-2. 从 Releases 页面下载插件 JAR。
-3. 将 JAR 放入 Xinbot 的 plugins 文件夹。
-4. 放置一个可以触发末影珍珠装置的按钮。
-5. 确保机器人可以寻路到按钮附近，并且能够站在一个可以点击到按钮的位置。
-6. 启动或重载 Xinbot 实例。
-7. 编辑自动生成的 `base_config.json` 文件。
-8. 向机器人发送私聊消息 `back` 或 `back <number>`。
+1. 安装前置插件 [MovementSync](https://github.com/huangdihd/MovementSync)。
+2. 将 BackToTheBase JAR 放入 Xinbot 的 `plugins` 文件夹。
+3. 启动一次 Xinbot，生成 `base_config.json`。
+4. 编辑 `base_config.json`。
+5. 重载或重启 Xinbot。
 
-## 指令格式
+## 玩家命令
 
-| 私聊消息            | 说明                              |
-| --------------- | ------------------------------- |
-| `back`          | 触发该玩家配置中的 `1` 号珍珠点位。              |
-| `back 1`        | 触发 `1` 号珍珠点位，效果与 `back` 相同。       |
-| `back 2`        | 如果该玩家配置中存在 `2` 号位置，则使用 `2` 号位置。 |
-| `back <number>` | 使用与该编号匹配的配置位置。编号应为正整数。          |
+玩家向机器人发送私聊消息(/msg 珍珠号)：
 
-**配置说明：**
+| 命令 | 说明 |
+| --- | --- |
+| `back` | 使用 `1` 号珍珠坐标。 |
+| `back <number>` | 使用对应编号的珍珠坐标。 |
 
-* **玩家名**，例如 `"Steve"`：代表可以发送指令的玩家的**游戏内 ID**。
-* **权重数字**：是该玩家的 BackToTheBase 配置。
-* 按钮坐标中的 `x`、`y`、`z` 代表**按钮方块本身的精确方块坐标**。
-* 机器人会自动检测按钮的朝向。当它收到 `back` 私聊消息时，会自动寻找一条安全路径，移动到按钮附近可点击的位置，瞄准按钮并按下它。
+示例：
+
+```text
+/msg 珍珠号 back
+/msg 珍珠号 back 2
+```
+
+## 控制台命令
+
+命令名为 `backtothebase`，注意BackToTheBase:backtothebase 不可用。
+
+| 所有命令 | 说明 |
+| --- | --- |
+| `backtothebase stat` | 查看插件状态。 |
+| `backtothebase player list` | 查看玩家列表。 |
+| `backtothebase player add <player>` | 添加玩家。 |
+| `backtothebase player remove <player>` | 请求删除玩家，需要 `confirm` 确认。 |
+| `backtothebase loc list <player>` | 查看玩家的珍珠坐标。 |
+| `backtothebase loc add <player> <number> <x> <y> <z>` | 添加珍珠坐标。 |
+| `backtothebase loc set <player> <number> <x> <y> <z>` | 设置或覆盖珍珠坐标。 |
+| `backtothebase loc remove <player> <number>` | 请求删除珍珠坐标，需要 `confirm` 确认。 |
+| `backtothebase returnenable true\|false` | 开启或关闭点击后的返回功能。 |
+| `backtothebase returnpoint <x> <y> <z>` | 设置返回坐标。 |
+| `backtothebase admin add\|remove <player>` | 管理游戏内管理员。 |
+| `backtothebase adminenable true\|false` | 开启或关闭游戏内管理命令。 |
+| `backtothebase confirm` | 确认待执行的删除操作。 |
+
+## 游戏内管理命令
+
+开启后，管理员可以向机器人发送私聊消息：
+
+```text
+/msg 珍珠号 @backtothebase <command>
+```
+
+**大部分控制台命令都支持，但不支持 `admin` 和 `adminenable` 等管理员设置命令。**
 
 ## 配置文件
 
-`base_config.json` 的根对象主要包含两个部分：
-
-- `players`：玩家对应的按钮位置配置
-- `return`：所有玩家共用的全局返回配置
-
-示例：
+`base_config.json` 示例：
 
 ```json
 {
@@ -68,16 +88,6 @@
           "z": 210
         }
       ]
-    },
-    "Alex": {
-      "locations": [
-        {
-          "number": "1",
-          "x": -50,
-          "y": 70,
-          "z": 30
-        }
-      ]
     }
   },
   "return": {
@@ -87,41 +97,25 @@
       "y": 60,
       "z": 0
     }
+  },
+  "admin": {
+    "enabled": false,
+    "players": []
   }
 }
 ```
 
-### 配置字段
+说明：
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `players` | Object | 玩家名到对应 BackToTheBase 配置的映射。 |
-| 玩家键名 | String | 允许触发机器人的玩家游戏内 ID，例如 `"Steve"`。 |
-| `locations` | Array | 该玩家可用的按钮位置列表。 |
-| `locations[].number` | String | 指令使用的位置编号。`"1"` 是 `back` 默认使用的位置。 |
-| `locations[].x` | Number | 按钮方块的精确 X 坐标。 |
-| `locations[].y` | Number | 按钮方块的精确 Y 坐标。 |
-| `locations[].z` | Number | 按钮方块的精确 Z 坐标。 |
-| `return` | Object | 所有玩家共用的全局返回配置。 |
-| `return.enabled` | Boolean | 如果为 `true`，机器人会先点击珍珠按钮，然后走回 `return.location`。如果为 `false`，机器人会在按下按钮后停止。 |
-| `return.location` | Object | 当启用 `return.enabled` 时，机器人按下按钮后要返回的位置。 |
-| `return.location.x` | Number | 返回位置的 X 坐标。 |
-| `return.location.y` | Number | 返回位置的 Y 坐标。 |
-| `return.location.z` | Number | 返回位置的 Z 坐标。 |
-
-## 返回功能
-
-当 `returnAfterUse` 设置为 `true` 时，机器人会按照以下顺序执行：
-
-1. 重新加载 `base_config.json`。
-2. 选择指令指定的按钮位置。
-3. 移动到按钮附近安全且可到达的位置。
-4. 瞄准按钮并按下按钮。
-5. 走回 `returnLocation`。
+- `players` 是玩家名到珍珠按钮坐标的映射。
+- `locations[].number` 必须是正整数形式的字符串。
+- `x`、`y`、`z` 是按钮方块本身的精确坐标。
+- `return.enabled` 控制点击后是否返回。
+- `admin.enabled` 控制游戏内 `@backtothebase` 管理命令是否启用。
 
 ## 旧版配置兼容
 
-旧版本使用的是更简单的配置格式：
+旧版简单配置仍然支持：
 
 ```json
 {
@@ -133,14 +127,15 @@
 }
 ```
 
-为了兼容旧版本，该格式仍然可以使用。
+插件会自动将其迁移到新的 `players.locations` 格式。
 
-当插件检测到旧格式的配置项时，会自动将其转换为新的 `locations` 格式。旧配置中的 `x`、`y`、`z` 会变成编号为 `"1"` 的按钮位置。迁移完成后，配置格式应与上方的新配置示例类似。
-
-## 从源码构建
-
-本项目使用 Maven。
+## 构建
 
 ```bash
 mvn clean package
 ```
+
+## 更多说明
+
+- 当 BackToTheBase 任务超时时，插件会调用 MovementSync 的 `cancelAll()` 来清理过期移动状态。由于 MovementSync 目前没有按插件范围取消移动的 API，这可能会取消其他排队中的 MovementSync 移动。
+- UseItemOnMovement 会先发送旋转包，再发送 UseItemOnPacket，这样服务端交互会瞄准按钮点击位置。点击会延迟到后续 movement tick 执行，避免旋转和交互在同一 tick 内发送。
