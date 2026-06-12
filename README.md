@@ -2,70 +2,73 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-A Xinbot plugin that triggers an ender pearl mechanism and brings the bot back to base by pressing a configured button.
+A Xinbot plugin that presses a configured ender pearl button for a player and optionally returns the bot to a base location.
 
 ## Features
-- Trigger a configured button to launch an ender pearl
-- Per-user button location and facing direction
-- Simple JSON configuration
-- Can otionally return the bot to a configured return location after pressing the pearl button.
-- Automatically detect the button's facing direction
-- Automatically find a reachable and safe standing position near the button before clicking it
-- SimpleJSON configuration and automatically migrates old version's format to new `locations` format.
 
-## How to use
-1. Install [MovementSync](https://github.com/huangdihd/movementsync).
-2. Download the plugin JAR from the Releases page.
-3. Place the JAR in your Xinbot plugins folder.
-4. Place a button that can trigger the ender pearl mechanism.
-5. Make sure the bot can pathfind to a nearby position where the button can be clicked.
-6. Start or reload your Xinbot instance.
-7. Edit the generated `base_config.json` file.
-8. Send the bot a private message with `back` or `back <number>`.
+- Supports multiple button locations per player
+- `back` uses location `1`; `back <number>` uses a selected location
+- Automatically detects button facing direction and finds a reachable standing position.
+- Optional global return location
+- Console management commands with tab completion
 
-## Command Formats
-
-| Private message | Description |
-| --- | --- |
-| `back` | Uses location number `1` for the player who sent the message. |
-| `back 1` | Uses location number `1`. This is the same target as `back`. |
-| `back 2` | Uses location number `2` if it exists in the player's configuration. |
-| `back <number>` | Uses the matching configured location number. The number should be a positive integer. |
-
-   **Configuration details:**
-   - The root object is a JSON map.
-   - **Key** (e.g., `"Steve"`): The **In-game ID** of the player who will send the command.
-   - **Value**: A coordinate object with `x`, `y`, and `z` representing the **exact block coordinates of the button**.
-   - The bot automatically detects the button's facing direction. When it receives a `back` private message, it will find a safe path to the button, move to a reachable position, aim at it, and press it.
-
-## How to use
+## Installation
 
 1. Install [MovementSync](https://github.com/huangdihd/MovementSync).
-2. Download the plugin JAR from the Releases page.
-3. Place the JAR in your Xinbot plugins folder.
-4. Place a button that can trigger the ender pearl mechanism.
-5. Make sure the bot can pathfind to a nearby position where the button can be clicked.
-6. Start or reload your Xinbot instance.
-7. Edit the generated `base_config.json` file.
-8. Send the bot a private message with `back` or `back <number>`.
+2. Put the BackToTheBase JAR in the Xinbot `plugins` folder.
+3. Start Xinbot once to generate `base_config.json`.
+4. Edit `base_config.json`.
+5. Reload or restart Xinbot.
 
-## Command formats
+## Player Commands
 
-| Private message | Description |
+Send these as private messages (/msg account_name) to the bot:
+
+| Command | Description |
 | --- | --- |
-| `back` | Uses location number `1` for the player who sent the message. |
-| `back 1` | Uses location number `1`. This is the same target as `back`. |
-| `back 2` | Uses location number `2` if it exists in the player's configuration. |
-| `back <number>` | Uses the matching configured location number. The number must be a positive integer. |
+| `back` | Uses location `1`. |
+| `back <number>` | Uses the matching configured location number. |
+
+Example:
+
+```text
+/msg account_name back
+/msg account_name back 2
+```
+
+## Console Commands
+
+Use the command name `backtothebase`. The prefixed form `BackToTheBase:backtothebase` also works.
+
+| Command | Description |
+| --- | --- |
+| `backtothebase stat` | Show plugin status. |
+| `backtothebase player list` | List players. |
+| `backtothebase player add <player>` | Add a player. |
+| `backtothebase player remove <player>` | Ask to remove a player. Requires `confirm`. |
+| `backtothebase loc list <player>` | List a player's locations. |
+| `backtothebase loc add <player> <number> <x> <y> <z>` | Add a button location. |
+| `backtothebase loc set <player> <number> <x> <y> <z>` | Set or replace a button location. |
+| `backtothebase loc remove <player> <number>` | Ask to remove a location. Requires `confirm`. |
+| `backtothebase returnenable true\|false` | Enable or disable returning after clicking. |
+| `backtothebase returnpoint <x> <y> <z>` | Set the return location. |
+| `backtothebase admin add\|remove <player>` | Manage in-game admins. |
+| `backtothebase adminenable true\|false` | Enable or disable in-game admin commands. |
+| `backtothebase confirm` | Confirm a pending remove action. |
+
+## In-game Admin Commands
+
+When enabled, admins can private message the bot with:
+
+```text
+/msg account_name @backtothebase <command>
+```
+
+**Most console commands are supported, except admin management commands such as `admin` and `adminenable`.**
 
 ## Configuration
 
-`base_config.json` uses a root object with two main sections:
-
-- `players`: player-specific button location settings
-- `return`: one global return setting shared by all players
-
-Example:
+Example `base_config.json`:
 
 ```json
 {
@@ -85,16 +88,6 @@ Example:
           "z": 210
         }
       ]
-    },
-    "Alex": {
-      "locations": [
-        {
-          "number": "1",
-          "x": -50,
-          "y": 70,
-          "z": 30
-        }
-      ]
     }
   },
   "return": {
@@ -104,41 +97,25 @@ Example:
       "y": 60,
       "z": 0
     }
+  },
+  "admin": {
+    "enabled": false,
+    "players": []
   }
 }
 ```
 
-### Configuration fields
+Notes:
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `players` | Object | A map of player names to their BackToTheBase settings. |
-| Player key | String | The in-game ID of the player who is allowed to trigger the bot. For example, `"Steve"`. |
-| `locations` | Array | A list of button locations available to this player. |
-| `locations[].number` | String | The location number used by the command. `"1"` is the default location used by `back`. |
-| `locations[].x` | Number | The exact X coordinate of the button block. |
-| `locations[].y` | Number | The exact Y coordinate of the button block. |
-| `locations[].z` | Number | The exact Z coordinate of the button block. |
-| `return` | Object | Global return settings shared by all players. |
-| `return.enabled` | Boolean | If `true`, the bot will click the pearl button first and then walk back to `return.location`. If `false`, it will stop after pressing the button. |
-| `return.location` | Object | The position the bot should return to after pressing the button when `return.enabled` is enabled. |
-| `return.location.x` | Number | Return position X coordinate. |
-| `return.location.y` | Number | Return position Y coordinate. |
-| `return.location.z` | Number | Return position Z coordinate. |
+- `players` maps player names to their button locations.
+- `locations[].number` must be a positive integer string.
+- `x`, `y`, and `z` are the exact block coordinates of the button.
+- `return.enabled` controls whether the bot walks back after clicking.
+- `admin.enabled` controls in-game `@backtothebase` management commands.
 
-## Return Function
+## Legacy Config
 
-When `returnAfterUse` is set to `true`, the bot will follow this order:
-
-1. Reload `base_config.json`.
-2. Select the requested button location.
-3. Walk to a safe reachable position near the button.
-4. Look at the button and press it.
-5. Walk back to `returnLocation`.
-
-## Legacy configuration compatibility
-
-Older versions used this simpler format:
+Old simple configs are still supported:
 
 ```json
 {
@@ -150,14 +127,15 @@ Older versions used this simpler format:
 }
 ```
 
-This format is still supported for compatibility. When the plugin detects an old configuration entry, it will convert it to the new `locations` format automatically. The old `x`, `y`, and `z` values become location number `1`.
+They will automatically migrate to the new `players.locations` format.
 
-After migration, the configuration format should look like the example configuration above.
-
-## Building from source
-
-This project uses Maven.
+## Build
 
 ```bash
 mvn clean package
 ```
+
+## Implementation Notes
+
+- When a BackToTheBase action times out, the plugin calls MovementSync `cancelAll()` to release stale movement state. This may cancel other queued MovementSync movements because MovementSync does not currently provide a plugin-scoped cancel API.
+- UseItemOnMovement sends a rotation packet before UseItemOnPacket so the server-side interaction is aimed at the button hit position. The click is delayed to a later movement tick to avoid sending rotation and interaction in the same tick.
