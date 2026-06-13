@@ -38,7 +38,7 @@
 
 ## 控制台命令
 
-命令名可以使用 `backtothebase` 或简短版 `bttd`。
+命令名可以使用 `backtothebase` 或简短版 `bttd`, 也可以使用带前缀的 `BackToTheBase:backtothebase` 或者 `BackToTheBase:bttd`。
 
 | 所有命令 | 说明 |
 | --- | --- |

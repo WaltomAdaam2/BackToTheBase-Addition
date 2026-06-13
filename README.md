@@ -38,7 +38,7 @@ Example:
 
 ## Console Commands
 
-Use the command name `backtothebase` or the short alias `bttd`.
+Use the command name `backtothebase` or the short alias `bttd`. The prefixed form `BackToTheBase:backtothebase` and `BackToTheBase:bttd` also works.
 
 | Command | Description |
 | --- | --- |
