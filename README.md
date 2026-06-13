@@ -54,6 +54,8 @@ Use the command name `backtothebase` or the short alias `bttd`. The prefixed for
 | `backtothebase returnpoint <x> <y> <z>` | Set the return location. |
 | `backtothebase admin add\|remove <player>` | Manage in-game admins. |
 | `backtothebase adminenable true\|false` | Enable or disable in-game admin commands. |
+| `backtothebase lang English` | Switch command output to English. |
+| `backtothebase lang Chinese` | Switch command output to Chinese. |
 | `backtothebase confirm` | Confirm a pending remove action. |
 
 ## In-game Admin Commands
@@ -65,7 +67,7 @@ When enabled, admins can private message the bot with:
 /msg account_name @bttd <command>
 ```
 
-**Most console commands are supported, except admin management commands such as `admin` and `adminenable`.**
+**Most console commands are supported, except admin management commands such as `admin` and `adminenable`. Language switching with `lang` is also console-only.**
 
 ## Configuration
 
@@ -73,6 +75,7 @@ Example `base_config.json`:
 
 ```json
 {
+  "language": "English",
   "players": {
     "Steve": {
       "locations": [
@@ -108,6 +111,8 @@ Example `base_config.json`:
 
 Notes:
 
+- `language` controls user-facing command output. Valid values are only `English` and `Chinese`.
+- When `base_config.json` is created, or when an old config without `language` is migrated, the plugin defaults to `Chinese`. After the field exists, the config value is used.
 - `players` maps player names to their button locations.
 - `locations[].number` must be a positive integer string.
 - `x`, `y`, and `z` are the exact block coordinates of the button.

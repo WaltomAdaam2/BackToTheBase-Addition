@@ -56,28 +56,28 @@ public class OnPrivateChat implements Listener {
         ButtonLocation location = config.getLocation(number);
         if (location == null) {
             BackToTheBase.INSTANCE.getLogger().warn("No pearl button location number {} configured for {}.", number, senderName);
-            sendPrivate(senderName, "[BackToTheBase] 珍珠坐标 " + number + " 未配置。");
+            sendPrivate(senderName, messages().locationNotConfigured(number));
             return;
         }
 
         if (!Bot.INSTANCE.getPluginManager().isPluginEnabled("MovementSync")) {
             BackToTheBase.INSTANCE.getLogger().warn("[BackToTheBase] MovementSync 未启用，无法执行 back 命令。");
-            sendPrivate(senderName, "[BackToTheBase] MovementSync 未启用，无法执行 back 命令。");
+            sendPrivate(senderName, messages().movementSyncDisabled());
             return;
         }
         if (!(Bot.INSTANCE.getPluginManager().getPlugin("MovementSync").getPlugin() instanceof MovementSync movementSync)) {
             BackToTheBase.INSTANCE.getLogger().error("[BackToTheBase] MovementSync 插件实例异常，无法执行 back 命令。");
-            sendPrivate(senderName, "[BackToTheBase] MovementSync 插件实例异常，无法执行 back 命令。");
+            sendPrivate(senderName, messages().movementSyncInvalid());
             return;
         }
         if (!acquireBackAction(senderName)) {
             BackToTheBase.INSTANCE.getLogger().warn("Ignoring back command from {} because a BackToTheBase action is already running.", senderName);
-            sendPrivate(senderName, "[BackToTheBase] 已有拉珍珠任务正在运行。");
+            sendPrivate(senderName, messages().actionAlreadyRunning());
             return;
         }
 
         BackToTheBase.INSTANCE.getLogger().info("BackToTheBase command from {} selected location number {}.", senderName, number);
-        sendPrivate(senderName, "[BackToTheBase] 正在拉动珍珠坐标 " + number + "。");
+        sendPrivate(senderName, messages().backStarted(number));
         if (!queueButtonAction(movementSync, senderName, location, BackToTheBase.INSTANCE.getBaseConfig().getReturnConfig())) {
             releaseBackAction();
         }
@@ -97,9 +97,17 @@ public class OnPrivateChat implements Listener {
         }
         String[] commandArgs = new String[args.length - 1];
         System.arraycopy(args, 1, commandArgs, 0, commandArgs.length);
-        for (String line : BackToTheBase.INSTANCE.handleManagementCommand(senderName, false, commandArgs)) {
+        for (String line : BackToTheBase.INSTANCE.handleManagementCommand(senderName, false, normalizeAdminPrefix(args[0]), commandArgs)) {
             sendPrivate(senderName, line);
         }
+    }
+
+    private BackToTheBaseLanguage messages() {
+        return BackToTheBaseLanguage.of(BackToTheBase.INSTANCE.getBaseConfig().getLanguage());
+    }
+
+    private String normalizeAdminPrefix(String prefix) {
+        return "@bttd".equalsIgnoreCase(prefix) ? "@bttd" : "@backtothebase";
     }
 
     private void sendPrivate(String playerName, String message) {

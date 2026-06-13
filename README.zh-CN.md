@@ -54,6 +54,8 @@
 | `backtothebase returnpoint <x> <y> <z>` | 设置返回坐标。 |
 | `backtothebase admin add\|remove <player>` | 管理游戏内管理员。 |
 | `backtothebase adminenable true\|false` | 开启或关闭游戏内管理命令。 |
+| `backtothebase lang English` | 将命令输出切换为英文。 |
+| `backtothebase lang Chinese` | 将命令输出切换为中文。 |
 | `backtothebase confirm` | 确认待执行的删除操作。 |
 
 ## 游戏内管理命令
@@ -65,7 +67,7 @@
 /msg 珍珠号 @bttd <command>
 ```
 
-**大部分控制台命令都支持，但不支持 `admin` 和 `adminenable` 等管理员设置命令。**
+**大部分控制台命令都支持，但不支持 `admin` 和 `adminenable` 等管理员设置命令。`lang` 语言切换命令也只能在控制台使用。**
 
 ## 配置文件
 
@@ -73,6 +75,7 @@
 
 ```json
 {
+  "language": "Chinese",
   "players": {
     "Steve": {
       "locations": [
@@ -108,6 +111,8 @@
 
 说明：
 
+- `language` 控制面向用户的命令输出语言，只接受 `English` 或 `Chinese`。
+- 首次生成 `base_config.json`，或迁移没有 `language` 的旧配置时，插件默认使用 `Chinese`。字段存在后，以配置文件中的值为准。
 - `players` 是玩家名到珍珠按钮坐标的映射。
 - `locations[].number` 必须是正整数形式的字符串。
 - `x`、`y`、`z` 是按钮方块本身的精确坐标。
