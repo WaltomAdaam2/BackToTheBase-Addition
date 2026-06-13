@@ -82,7 +82,7 @@ public class BackToTheBase implements Plugin {
     public void onEnable() {
         Bot.INSTANCE.getPluginManager().events().registerEvents(new OnPrivateChat(), this);
         Bot.INSTANCE.getPluginManager().registerCommand(
-                new Command("backtothebase", new String[0], "BackToTheBase management", "backtothebase <command>"),
+                new Command("backtothebase", new String[]{"bttd"}, "BackToTheBase management", "backtothebase <command>"),
                 new BackToTheBaseCommand(),
                 this
         );
@@ -1067,7 +1067,9 @@ public class BackToTheBase implements Plugin {
 
         private boolean isPlainCommandLabel(String label) {
             return "backtothebase".equalsIgnoreCase(label)
-                    || "BackToTheBase:backtothebase".equalsIgnoreCase(label);
+                    || "bttd".equalsIgnoreCase(label)
+                    || "BackToTheBase:backtothebase".equalsIgnoreCase(label)
+                    || "BackToTheBase:bttd".equalsIgnoreCase(label);
         }
 
         private List<String> rootSuggestions(String prefix) {

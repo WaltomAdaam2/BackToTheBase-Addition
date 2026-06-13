@@ -38,7 +38,7 @@
 
 ## 控制台命令
 
-命令名为 `backtothebase`，注意BackToTheBase:backtothebase 不可用。
+命令名可以使用 `backtothebase` 或简短版 `bttd`。
 
 | 所有命令 | 说明 |
 | --- | --- |
@@ -62,6 +62,7 @@
 
 ```text
 /msg 珍珠号 @backtothebase <command>
+/msg 珍珠号 @bttd <command>
 ```
 
 **大部分控制台命令都支持，但不支持 `admin` 和 `adminenable` 等管理员设置命令。**
@@ -111,7 +112,7 @@
 - `locations[].number` 必须是正整数形式的字符串。
 - `x`、`y`、`z` 是按钮方块本身的精确坐标。
 - `return.enabled` 控制点击后是否返回。
-- `admin.enabled` 控制游戏内 `@backtothebase` 管理命令是否启用。
+- `admin.enabled` 控制游戏内 `@backtothebase` / `@bttd` 管理命令是否启用。
 
 ## 旧版配置兼容
 

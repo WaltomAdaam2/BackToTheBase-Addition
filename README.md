@@ -38,7 +38,7 @@ Example:
 
 ## Console Commands
 
-Use the command name `backtothebase`. Note that BackToTheBase:backtothebase is not available.
+Use the command name `backtothebase` or the short alias `bttd`.
 
 | Command | Description |
 | --- | --- |
@@ -62,6 +62,7 @@ When enabled, admins can private message the bot with:
 
 ```text
 /msg account_name @backtothebase <command>
+/msg account_name @bttd <command>
 ```
 
 **Most console commands are supported, except admin management commands such as `admin` and `adminenable`.**
@@ -111,7 +112,7 @@ Notes:
 - `locations[].number` must be a positive integer string.
 - `x`, `y`, and `z` are the exact block coordinates of the button.
 - `return.enabled` controls whether the bot walks back after clicking.
-- `admin.enabled` controls in-game `@backtothebase` management commands.
+- `admin.enabled` controls in-game `@backtothebase` / `@bttd` management commands.
 
 ## Legacy Config
 

@@ -36,7 +36,7 @@ public class OnPrivateChat implements Listener {
         String[] args = message.trim().split("\\s+");
 
         String senderName = event.getSender().getName();
-        if ("@backtothebase".equalsIgnoreCase(args[0])) {
+        if ("@backtothebase".equalsIgnoreCase(args[0]) || "@bttd".equalsIgnoreCase(args[0])) {
             handleAdminCommand(senderName, args);
             return;
         }
