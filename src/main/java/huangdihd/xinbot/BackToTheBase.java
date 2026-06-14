@@ -36,6 +36,10 @@ public class BackToTheBase implements Plugin {
     public static BackToTheBase INSTANCE;
     public PlayerBaseConfig.BaseConfig baseConfig = new PlayerBaseConfig.BaseConfig();
     public static final String config_name = "base_config.json";
+    public static final String COMMAND_NAME = "backtothebase";
+    public static final String COMMAND_ALIAS = "bttb";
+    public static final String GAME_COMMAND_PREFIX = "@" + COMMAND_NAME;
+    public static final String GAME_COMMAND_ALIAS_PREFIX = "@" + COMMAND_ALIAS;
     private static final int MAX_ADMINS = 3;
     private static final long PENDING_ACTION_TIMEOUT_MS = 60_000L;
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -48,6 +52,7 @@ public class BackToTheBase implements Plugin {
     @Override
     public void onLoad() {
         INSTANCE = this;
+        BackToTheBaseLanguage.init(getClass().getClassLoader());
 
         File configFile = new File(config_name);
         if (!configFile.exists()) {
@@ -81,7 +86,7 @@ public class BackToTheBase implements Plugin {
     public void onEnable() {
         Bot.INSTANCE.getPluginManager().events().registerEvents(new OnPrivateChat(), this);
         Bot.INSTANCE.getPluginManager().registerCommand(
-                new Command("backtothebase", new String[]{"bttd"}, "BackToTheBase management", "backtothebase <command>"),
+                new Command(COMMAND_NAME, new String[]{COMMAND_ALIAS}, "BackToTheBase management", COMMAND_NAME + " <command>"),
                 new BackToTheBaseCommand(),
                 this
         );
@@ -290,13 +295,13 @@ public class BackToTheBase implements Plugin {
         }
         JsonElement element = root.get("language");
         if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
-            getLogger().error("Config field language must be English or Chinese.");
-            return new ConfigValue<>(BackToTheBaseLanguage.CHINESE, true, true);
+            getLogger().warn("Config field language must be English or Chinese. Defaulting language to Chinese.");
+            return new ConfigValue<>(BackToTheBaseLanguage.CHINESE, true, false);
         }
         String language = BackToTheBaseLanguage.normalize(element.getAsString());
         if (!BackToTheBaseLanguage.isValid(element.getAsString())) {
-            getLogger().error("Config field language must be English or Chinese.");
-            return new ConfigValue<>(language, true, true);
+            getLogger().warn("Config field language must be English or Chinese. Defaulting language to Chinese.");
+            return new ConfigValue<>(language, true, false);
         }
         return new ConfigValue<>(language, false, false);
     }
@@ -671,7 +676,7 @@ public class BackToTheBase implements Plugin {
     }
 
     public synchronized List<String> handleManagementCommand(String sender, boolean console, String[] args) {
-        String commandPrefix = console ? "backtothebase" : "@backtothebase";
+        String commandPrefix = console ? COMMAND_NAME : GAME_COMMAND_PREFIX;
         return handleManagementCommand(sender, console, commandPrefix, args);
     }
 
@@ -1077,7 +1082,7 @@ public class BackToTheBase implements Plugin {
 
     private String confirmCommand(String commandPrefix) {
         if (commandPrefix == null || commandPrefix.isBlank()) {
-            commandPrefix = "backtothebase";
+            commandPrefix = COMMAND_NAME;
         }
         return commandPrefix + " confirm";
     }
@@ -1115,6 +1120,7 @@ public class BackToTheBase implements Plugin {
 
         @Override
         public List<String> onTabComplete(Command command, String label, String[] args) {
+            // Prevent tab completion from responding to unexpected command labels.
             if (!isPlainCommandLabel(label)) {
                 return List.of();
             }
@@ -1137,10 +1143,10 @@ public class BackToTheBase implements Plugin {
         }
 
         private boolean isPlainCommandLabel(String label) {
-            return "backtothebase".equalsIgnoreCase(label)
-                    || "bttd".equalsIgnoreCase(label)
-                    || "BackToTheBase:backtothebase".equalsIgnoreCase(label)
-                    || "BackToTheBase:bttd".equalsIgnoreCase(label);
+            return COMMAND_NAME.equalsIgnoreCase(label)
+                    || COMMAND_ALIAS.equalsIgnoreCase(label)
+                    || ("BackToTheBase:" + COMMAND_NAME).equalsIgnoreCase(label)
+                    || ("BackToTheBase:" + COMMAND_ALIAS).equalsIgnoreCase(label);
         }
 
         private List<String> rootSuggestions(String prefix) {
@@ -1203,7 +1209,10 @@ public class BackToTheBase implements Plugin {
     }
 
     private String normalizeConsoleCommandLabel(String label) {
-        return label != null && label.toLowerCase().endsWith("bttd") ? "bttd" : "backtothebase";
+        if (COMMAND_ALIAS.equalsIgnoreCase(label) || ("BackToTheBase:" + COMMAND_ALIAS).equalsIgnoreCase(label)) {
+            return COMMAND_ALIAS;
+        }
+        return COMMAND_NAME;
     }
 
     private enum PendingType {

@@ -1,15 +1,18 @@
 package huangdihd.xinbot;
 
-import java.util.Locale;
+import xin.bbtt.mcbot.LangManager;
 
 public class BackToTheBaseLanguage {
     public static final String ENGLISH = "English";
     public static final String CHINESE = "Chinese";
 
-    private final boolean chinese;
+    private static String loadedLanguageCode = "";
+    private static ClassLoader pluginClassLoader = BackToTheBaseLanguage.class.getClassLoader();
+    private final String language;
 
     private BackToTheBaseLanguage(String language) {
-        this.chinese = CHINESE.equals(normalize(language));
+        this.language = normalize(language);
+        loadLanguage(this.language);
     }
 
     public static BackToTheBaseLanguage of(String language) {
@@ -17,319 +20,267 @@ public class BackToTheBaseLanguage {
     }
 
     public static boolean isValid(String language) {
-        return ENGLISH.equalsIgnoreCase(language) || CHINESE.equalsIgnoreCase(language);
+        return language != null && (ENGLISH.equalsIgnoreCase(language) || CHINESE.equalsIgnoreCase(language));
     }
 
     public static String normalize(String language) {
-        if (ENGLISH.equalsIgnoreCase(language)) {
+        if (isValid(language) && ENGLISH.equalsIgnoreCase(language)) {
             return ENGLISH;
-        }
-        if (CHINESE.equalsIgnoreCase(language)) {
-            return CHINESE;
         }
         return CHINESE;
     }
 
-    public static String detectSystemDefault() {
-        String language = Locale.getDefault().getLanguage();
-        return language != null && language.toLowerCase(Locale.ROOT).startsWith("zh") ? CHINESE : ENGLISH;
+    public static String toLangCode(String language) {
+        return ENGLISH.equals(normalize(language)) ? "en_us" : "zh_cn";
+    }
+
+    public static synchronized void init(ClassLoader classLoader) {
+        pluginClassLoader = classLoader;
+        LangManager.initLang(classLoader);
+        loadedLanguageCode = "";
+    }
+
+    private static synchronized void loadLanguage(String language) {
+        String languageCode = toLangCode(language);
+        if (languageCode.equals(loadedLanguageCode)) {
+            return;
+        }
+        LangManager.loadFromClassLoader(pluginClassLoader, "en_us");
+        if (!"en_us".equals(languageCode)) {
+            LangManager.loadFromClassLoader(pluginClassLoader, languageCode);
+        }
+        loadedLanguageCode = languageCode;
     }
 
     public String unknownCommand() {
-        return prefix() + (chinese ? "未知命令。" : "Unknown command.");
+        return msg("backtothebase.unknown_command");
     }
 
     public String saveFailed() {
-        return prefix() + (chinese ? "配置保存失败，请检查日志。" : "Failed to save config. Please check the log.");
+        return msg("backtothebase.save_failed");
     }
 
     public String consoleOnly() {
-        return prefix() + (chinese ? "该命令只能在控制台使用。" : "This command can only be used from the console.");
+        return msg("backtothebase.console_only");
     }
 
     public String usage(String usage) {
-        return prefix() + (chinese ? "用法: " : "Usage: ") + usage;
+        return msg("backtothebase.usage", usage);
     }
 
     public String languageChanged(String language) {
-        return prefix() + (chinese
-                ? "语言已切换为 " + language + "。"
-                : "Language changed to " + language + ".");
+        return msg("backtothebase.language.changed", language);
     }
 
     public String returnEnabled(boolean enabled) {
-        if (chinese) {
-            return prefix() + (enabled ? "已开启返回功能。" : "已关闭返回功能。");
-        }
-        return prefix() + (enabled ? "Return after use enabled." : "Return after use disabled.");
+        return msg(enabled ? "backtothebase.return.enabled" : "backtothebase.return.disabled");
     }
 
     public String coordinatesMustBeIntegers() {
-        return prefix() + (chinese ? "坐标必须是整数。" : "Coordinates must be integers.");
+        return msg("backtothebase.coordinates.integer");
     }
 
     public String numberAndCoordinatesMustBeIntegers() {
-        return prefix() + (chinese ? "编号和坐标必须是整数。" : "Number and coordinates must be integers.");
+        return msg("backtothebase.number_coordinates.integer");
     }
 
     public String returnPointSet(int x, int y, int z) {
-        if (chinese) {
-            return prefix() + "已设置返回坐标为 " + x + " " + y + " " + z + "。";
-        }
-        return prefix() + "Return location set to " + x + " " + y + " " + z + ".";
+        return msg("backtothebase.return_point.set", x, y, z);
     }
 
     public String playerExists(String playerName) {
-        return prefix() + (chinese ? "玩家 " + playerName + " 已存在。" : "Player " + playerName + " already exists.");
+        return msg("backtothebase.player.exists", playerName);
     }
 
     public String playerMissing(String playerName) {
-        return prefix() + (chinese ? "玩家 " + playerName + " 不存在。" : "Player " + playerName + " does not exist.");
+        return msg("backtothebase.player.missing", playerName);
     }
 
     public String playerAdded(String playerName) {
-        return prefix() + (chinese ? "已添加玩家 " + playerName + "。" : "Added player " + playerName + ".");
+        return msg("backtothebase.player.added", playerName);
     }
 
     public String waitingRemovePlayer(String playerName, String confirmCommand) {
-        if (chinese) {
-            return prefix() + "等待确认删除玩家 " + playerName + "。请输入 " + confirmCommand + " 确认。";
-        }
-        return prefix() + "Waiting to confirm removing player " + playerName + ". Run " + confirmCommand + " to confirm.";
+        return msg("backtothebase.player.remove.waiting", playerName, confirmCommand);
     }
 
     public String locationMissing(String number) {
-        return prefix() + (chinese ? "珍珠坐标 " + number + " 不存在。" : "Pearl button location " + number + " does not exist.");
+        return msg("backtothebase.location.missing", number);
     }
 
     public String locationNotConfigured(String number) {
-        return prefix() + (chinese ? "珍珠坐标 " + number + " 未配置。" : "Pearl button location " + number + " is not configured.");
+        return msg("backtothebase.location.not_configured", number);
     }
 
     public String cannotRemoveLastLocation(String playerName) {
-        if (chinese) {
-            return prefix() + "不能删除 " + playerName + " 的最后一个珍珠坐标，请使用 player remove。";
-        }
-        return prefix() + "Cannot remove " + playerName + "'s last pearl button location. Use player remove.";
+        return msg("backtothebase.location.last", playerName);
     }
 
     public String waitingRemoveLocation(String playerName, String number, String confirmCommand) {
-        if (chinese) {
-            return prefix() + "等待确认删除 " + playerName + " 的珍珠坐标 " + number + "。请输入 " + confirmCommand + " 确认。";
-        }
-        return prefix() + "Waiting to confirm removing " + playerName + "'s pearl button location " + number + ". Run " + confirmCommand + " to confirm.";
+        return msg("backtothebase.location.remove.waiting", playerName, number, confirmCommand);
     }
 
     public String locationExists(String number) {
-        if (chinese) {
-            return prefix() + "珍珠坐标 " + number + " 已存在，请使用 loc set 覆盖。";
-        }
-        return prefix() + "Pearl button location " + number + " already exists. Use loc set to replace it.";
+        return msg("backtothebase.location.exists", number);
     }
 
     public String locationAddResult(boolean createdPlayer, String playerName, String number, int x, int y, int z) {
-        if (chinese) {
-            return prefix() + (createdPlayer
-                    ? "已创建玩家 " + playerName + "，并添加珍珠坐标 " + number + ": " + coords(x, y, z) + "。"
-                    : "已为 " + playerName + " 添加珍珠坐标 " + number + ": " + coords(x, y, z) + "。");
-        }
-        return prefix() + (createdPlayer
-                ? "Created player " + playerName + " and added pearl button location " + number + ": " + coords(x, y, z) + "."
-                : "Added pearl button location " + number + " for " + playerName + ": " + coords(x, y, z) + ".");
+        return msg(createdPlayer ? "backtothebase.location.add.created_player" : "backtothebase.location.added",
+                playerName, number, x, y, z);
     }
 
     public String locationSetCreatedPlayer(String playerName, String number, int x, int y, int z) {
-        if (chinese) {
-            return prefix() + "已创建玩家 " + playerName + "，并设置珍珠坐标 " + number + ": " + coords(x, y, z) + "。";
-        }
-        return prefix() + "Created player " + playerName + " and set pearl button location " + number + ": " + coords(x, y, z) + ".";
+        return msg("backtothebase.location.set.created_player", playerName, number, x, y, z);
     }
 
     public String locationSetResult(boolean existed, String playerName, String number, int x, int y, int z) {
-        if (chinese) {
-            return prefix() + (existed
-                    ? "已更新 " + playerName + " 的珍珠坐标 " + number + " 为 " + coords(x, y, z) + "。"
-                    : "已创建 " + playerName + " 的珍珠坐标 " + number + ": " + coords(x, y, z) + "。");
-        }
-        return prefix() + (existed
-                ? "Updated " + playerName + "'s pearl button location " + number + " to " + coords(x, y, z) + "."
-                : "Created " + playerName + "'s pearl button location " + number + ": " + coords(x, y, z) + ".");
+        return msg(existed ? "backtothebase.location.updated" : "backtothebase.location.created",
+                playerName, number, x, y, z);
     }
 
     public String adminExists(String playerName) {
-        return prefix() + (chinese ? "管理员 " + playerName + " 已存在。" : "Admin " + playerName + " already exists.");
+        return msg("backtothebase.admin.exists", playerName);
     }
 
     public String adminMissing(String playerName) {
-        return prefix() + (chinese ? "管理员 " + playerName + " 不存在。" : "Admin " + playerName + " does not exist.");
+        return msg("backtothebase.admin.missing", playerName);
     }
 
     public String adminLimit(int maxAdmins, String playerName) {
-        if (chinese) {
-            return prefix() + "管理员数量已达到上限 " + maxAdmins + "，无法添加 " + playerName + "。";
-        }
-        return prefix() + "Admin limit " + maxAdmins + " reached. Cannot add " + playerName + ".";
+        return msg("backtothebase.admin.limit", maxAdmins, playerName);
     }
 
     public String adminAdded(String playerName) {
-        return prefix() + (chinese ? "已添加管理员 " + playerName + "。" : "Added admin " + playerName + ".");
+        return msg("backtothebase.admin.added", playerName);
     }
 
     public String adminRemoved(String playerName) {
-        return prefix() + (chinese ? "已删除管理员 " + playerName + "。" : "Removed admin " + playerName + ".");
+        return msg("backtothebase.admin.removed", playerName);
     }
 
     public String adminEnabled(boolean enabled) {
-        if (chinese) {
-            return prefix() + (enabled ? "已开启游戏内管理。" : "已关闭游戏内管理。");
-        }
-        return prefix() + (enabled ? "In-game admin commands enabled." : "In-game admin commands disabled.");
+        return msg(enabled ? "backtothebase.admin.enabled" : "backtothebase.admin.disabled");
     }
 
     public String noPendingAction() {
-        return prefix() + (chinese ? "没有需要确认的操作。" : "There is no pending action to confirm.");
+        return msg("backtothebase.pending.none");
     }
 
     public String pendingExpired() {
-        return prefix() + (chinese ? "确认操作已超时，请重新执行删除命令。" : "The confirmation timed out. Please run the remove command again.");
+        return msg("backtothebase.pending.expired");
     }
 
     public String confirmedRemovePlayer(String playerName) {
-        return prefix() + (chinese ? "已确认，删除玩家 " + playerName + "。" : "Confirmed. Removed player " + playerName + ".");
+        return msg("backtothebase.player.removed.confirmed", playerName);
     }
 
     public String confirmedRemoveLocation(String playerName, String number) {
-        if (chinese) {
-            return prefix() + "已确认，删除 " + playerName + " 的珍珠坐标 " + number + "。";
-        }
-        return prefix() + "Confirmed. Removed " + playerName + "'s pearl button location " + number + ".";
+        return msg("backtothebase.location.removed.confirmed", playerName, number);
     }
 
     public String statusHeader() {
-        return consolePrefix() + "===== BackToTheBase " + (chinese ? "状态" : "Status") + " =====";
+        return msg("backtothebase.status.header");
     }
 
     public String returnFeature(boolean enabled) {
-        if (chinese) {
-            return consolePrefix() + "返回功能: " + (enabled ? "运行中 (配置: 启用)" : "已停止 (配置: 禁用)");
-        }
-        return consolePrefix() + "Return: " + (enabled ? "running (config: enabled)" : "stopped (config: disabled)");
+        return msg(enabled ? "backtothebase.status.return.running" : "backtothebase.status.return.stopped");
     }
 
     public String returnLocation(int x, int y, int z) {
-        return consolePrefix() + (chinese ? "返回坐标: " : "Return location: ") + coords(x, y, z);
+        return msg("backtothebase.status.return_location", x, y, z);
     }
 
     public String adminFeature(boolean enabled) {
-        if (chinese) {
-            return consolePrefix() + "游戏内管理: " + (enabled ? "运行中 (配置: 启用)" : "已停止 (配置: 禁用)");
-        }
-        return consolePrefix() + "In-game admin: " + (enabled ? "running (config: enabled)" : "stopped (config: disabled)");
+        return msg(enabled ? "backtothebase.status.admin.running" : "backtothebase.status.admin.stopped");
     }
 
     public String adminCount(int count, int maxAdmins) {
-        return consolePrefix() + (chinese ? "管理员数量: " : "Admins: ") + count + " / " + maxAdmins;
+        return msg("backtothebase.status.admin_count", count, maxAdmins);
     }
 
     public String playerCount(int count) {
-        return consolePrefix() + (chinese ? "玩家数量: " : "Players: ") + count;
+        return msg("backtothebase.status.player_count", count);
     }
 
     public String locationCount(int count) {
-        return consolePrefix() + (chinese ? "珍珠坐标数量: " : "Pearl button locations: ") + count;
+        return msg("backtothebase.status.location_count", count);
     }
 
     public String playerDataHeader() {
-        return consolePrefix() + (chinese ? "玩家数据:" : "Player data:");
+        return msg("backtothebase.status.player_data");
     }
 
     public String playerDataLine(String playerName, int locationCount) {
-        return consolePrefix() + "  " + playerName + ": " + locationCount + (chinese ? " 个珍珠坐标" : " pearl button locations");
+        return msg("backtothebase.status.player_data.line", playerName, locationCount);
     }
 
     public String divider() {
-        return consolePrefix() + "================================";
+        return msg("backtothebase.divider");
     }
 
     public String gameStatus(boolean returnEnabled, int x, int y, int z, boolean adminEnabled, int admins, int maxAdmins, int players, int locations) {
-        if (chinese) {
-            return prefix() + "状态: 返回功能=" + enabledText(returnEnabled) + ", 返回坐标=" + coords(x, y, z)
-                    + ", 游戏内管理=" + enabledText(adminEnabled) + ", 管理员=" + admins + "/" + maxAdmins
-                    + ", 玩家=" + players + ", 珍珠坐标=" + locations;
-        }
-        return prefix() + "Status: return=" + enabledText(returnEnabled) + ", return location=" + coords(x, y, z)
-                + ", in-game admin=" + enabledText(adminEnabled) + ", admins=" + admins + "/" + maxAdmins
-                + ", players=" + players + ", pearl locations=" + locations;
+        return msg("backtothebase.status.game",
+                enabledText(returnEnabled), x, y, z, enabledText(adminEnabled), admins, maxAdmins, players, locations);
     }
 
     public String playerListHeader() {
-        return consolePrefix() + "===== BackToTheBase " + (chinese ? "玩家列表" : "Players") + " =====";
+        return msg("backtothebase.player_list.header");
     }
 
     public String noPlayers() {
-        return prefix() + (chinese ? "暂无玩家配置。" : "No player configs.");
+        return msg("backtothebase.players.none");
     }
 
     public String noPlayersConsole() {
-        return consolePrefix() + (chinese ? "暂无玩家配置。" : "No player configs.");
+        return msg("backtothebase.players.none.console");
     }
 
     public String playerLocationData(String playerName, String numbers) {
-        return consolePrefix() + "  " + playerName + ": " + (chinese ? "珍珠坐标 " : "pearl locations ") + numbers;
+        return msg("backtothebase.player.location_data", playerName, numbers);
     }
 
     public String gamePlayerList(String players) {
-        return prefix() + (chinese ? "玩家列表: " : "Players: ") + players;
+        return msg("backtothebase.player_list.game", players);
     }
 
     public String gamePlayerEntry(String playerName, String numbers) {
-        return playerName + (chinese ? "(珍珠坐标 " : "(pearl locations ") + numbers + ")";
+        return msg("backtothebase.player_list.entry", playerName, numbers);
     }
 
     public String locationListHeader(String playerName) {
-        return consolePrefix() + "===== " + playerName + (chinese ? " 的珍珠坐标" : "'s pearl button locations") + " =====";
+        return msg("backtothebase.location_list.header", playerName);
     }
 
     public String locationLine(String number, int x, int y, int z) {
-        return consolePrefix() + "  " + number + ": " + coords(x, y, z);
+        return msg("backtothebase.location_list.line", number, x, y, z);
     }
 
     public String gameLocationList(String playerName, String locations) {
-        return prefix() + playerName + (chinese ? " 的珍珠坐标: " : "'s pearl button locations: ") + locations;
+        return msg("backtothebase.location_list.game", playerName, locations);
     }
 
     public String enabledText(boolean enabled) {
-        if (chinese) {
-            return enabled ? "启用" : "禁用";
-        }
-        return enabled ? "enabled" : "disabled";
+        return msg(enabled ? "backtothebase.enabled" : "backtothebase.disabled");
     }
 
     public String movementSyncDisabled() {
-        return prefix() + (chinese ? "MovementSync 未启用，无法执行 back 命令。" : "MovementSync is not enabled. Cannot run back.");
+        return msg("backtothebase.movementsync.disabled");
     }
 
     public String movementSyncInvalid() {
-        return prefix() + (chinese ? "MovementSync 插件实例异常，无法执行 back 命令。" : "MovementSync plugin instance is invalid. Cannot run back.");
+        return msg("backtothebase.movementsync.invalid");
     }
 
     public String actionAlreadyRunning() {
-        return prefix() + (chinese ? "已有拉珍珠任务正在运行。" : "A BackToTheBase action is already running.");
+        return msg("backtothebase.action.running");
     }
 
     public String backStarted(String number) {
-        return prefix() + (chinese ? "正在拉动珍珠坐标 " + number + "。" : "Pulling pearl button location " + number + ".");
+        return msg("backtothebase.back.started", number);
     }
 
-    private static String prefix() {
-        return "[BackToTheBase] ";
-    }
-
-    private static String consolePrefix() {
-        return "[BackToTheBase]: ";
-    }
-
-    private static String coords(int x, int y, int z) {
-        return x + " " + y + " " + z;
+    private String msg(String key, Object... args) {
+        loadLanguage(language);
+        return LangManager.get(key, args);
     }
 }

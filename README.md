@@ -38,7 +38,7 @@ Example:
 
 ## Console Commands
 
-Use the command name `backtothebase` or the short alias `bttd`. The prefixed form `BackToTheBase:backtothebase` and `BackToTheBase:bttd` also works.
+Use the command name `backtothebase` or the short alias `bttb`. The prefixed form `BackToTheBase:backtothebase` and `BackToTheBase:bttb` also works.
 
 | Command | Description |
 | --- | --- |
@@ -64,7 +64,7 @@ When enabled, admins can private message the bot with:
 
 ```text
 /msg account_name @backtothebase <command>
-/msg account_name @bttd <command>
+/msg account_name @bttb <command>
 ```
 
 **Most console commands are supported, except admin management commands such as `admin` and `adminenable`. Language switching with `lang` is also console-only.**
@@ -112,12 +112,13 @@ Example `base_config.json`:
 Notes:
 
 - `language` controls user-facing command output. Valid values are only `English` and `Chinese`.
-- When `base_config.json` is created, or when an old config without `language` is migrated, the plugin defaults to `Chinese`. After the field exists, the config value is used.
+- Missing or invalid `language` defaults to `Chinese`. After the field exists, the config value is used.
+- Command output is loaded through Xinbot `LangManager` from `lang/en_us.lang` and `lang/zh_cn.lang`.
 - `players` maps player names to their button locations.
 - `locations[].number` must be a positive integer string.
 - `x`, `y`, and `z` are the exact block coordinates of the button.
 - `return.enabled` controls whether the bot walks back after clicking.
-- `admin.enabled` controls in-game `@backtothebase` / `@bttd` management commands.
+- `admin.enabled` controls in-game `@backtothebase` / `@bttb` management commands.
 
 ## Legacy Config
 
